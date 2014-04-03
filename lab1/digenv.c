@@ -8,5 +8,5 @@ int main(int argc, char **argv, char **envp)
 	{
 		printf("%d:%s\n", i , envp[i]);
 	}
-	return 0;
+	return 0;/*hej*/
 }
