@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "stdlib.h"
-/* ny ändring */
+
 int main(int argc, char **argv, char **envp)
 {
 	int i;
@@ -8,5 +8,4 @@ int main(int argc, char **argv, char **envp)
 	{
 		printf("%d:%s\n", i , envp[i]);
 	}
-	return 0;/*hej*/
-}
+	return 0;
