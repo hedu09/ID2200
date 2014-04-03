@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "stdlib.h"
-
+/* ny ändring */
 int main(int argc, char **argv, char **envp)
 {
 	int i;
