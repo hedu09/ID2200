@@ -40,22 +40,24 @@ int main(int argc, char **argv, char **envp)
 		fprintf( stderr, "Child (printenv, pid %ld) started\n",	
              (long int) getpid() );
 
+		returnValue = dup2(pipe_fileDesc[ PIPE_READ_SIDE ], STDIN_FILENO);
+
 		/* Close the write end of this pipe, child doesn't have to write data*/
-		returnValue = close (pipe_fileDesc[1]);
+		returnValue = close (pipe_fileDesc[PIPE_WRITE_SIDE]);
 		if (-1 == returnValue)
 		{
 			perror("Cannot close pipe");
 			exit(1);
 		}
 
-		returnValue = read( pipe_fileDesc[0], &line, sizeof(line));
-		if (argc == 1)
+		if (argc == 1) /* Directly to sort */
 		{
+			(void) execlp("sort", "sort", (char *) 0);
 
-
-
+			perror("Cannot exec sort");
+			exit(1);
 		}
-		else if (argc >= 2) // Grep!
+		else if (argc >= 2) /* Grep first!*/
 		{
 			/* code */
 		}
@@ -81,15 +83,20 @@ int main(int argc, char **argv, char **envp)
 				errorMessage = "cannot allocate kernel data";
 			}
 
-			fprintf(stderr, "fork() blew up becuse: %s\n", errorMessage);
+			fprintf(stderr, "fork() blew up because: %s\n", errorMessage);
 			exit(1);
 		}
 
-		printf("Parent\n");
 		// Parent code starts here
+		returnValue = dup2(pipe_fileDesc[PIPE_WRITE_SIDE], STDOUT_FILENO);
+		if (-1 == returnValue)
+		{
+			perror("Parent cannot dup2 write end");
+			exit(1);
+		}
 
 		/* Close the read end of the pipe, we only need to write to the child */
-		returnValue = close (pipe_fileDesc[0]);
+		returnValue = close (pipe_fileDesc[PIPE_READ_SIDE]);
 		if (-1 == returnValue)
 		{
 			perror("Parent cannot close read end");
@@ -101,8 +108,10 @@ int main(int argc, char **argv, char **envp)
 		for (i = 0; envp[i] != NULL; ++i)
 		{
 		
-		printf("%2d:%s\n", i , envp[i]);
-		returnValue = write( pipe_fileDesc[1], &envp[i], sizeof(envp[i]));
+		//printf("%2d:%s\n", i , envp[i]);
+		//printf("%s\n", envp[i]);
+
+		returnValue = write( pipe_fileDesc[PIPE_WRITE_SIDE], *&envp[i], sizeof(envp[i]));
 
 			if (-1 == returnValue)
 			{
