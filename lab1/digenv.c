@@ -103,22 +103,25 @@ int main(int argc, char **argv, char **envp)
 			exit(1);
 		}
 
+		printf("Size of envp: %d\n", sizeof(envp));
 
-		int i;
-		for (i = 0; envp[i] != NULL; ++i)
-		{
-		
-		//printf("%2d:%s\n", i , envp[i]);
-		//printf("%s\n", envp[i]);
 
-		returnValue = write( pipe_fileDesc[PIPE_WRITE_SIDE], *&envp[i], sizeof(envp[i]));
+		returnValue = write( pipe_fileDesc[PIPE_WRITE_SIDE], *&envp[0], sizeof(envp)); //sort gets wrong sizeof and causes write without newline
 
 			if (-1 == returnValue)
 			{
 				perror("Parent cannot write to pipe");
 				exit(1);
 			}
-		}
+		
+
+		/*int i;
+		for (i = 0; envp[i] != NULL; ++i)
+		{
+		
+		//printf("%2d:%s\n", i , envp[i]);
+		//printf("%s\n", envp[i]);
+		} */
 	}
 	exit(0); // Nomral terminate
 }
