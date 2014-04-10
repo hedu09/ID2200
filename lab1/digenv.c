@@ -6,8 +6,8 @@
 #include <unistd.h> /* definierar bland annat fork() */
 
 
-#define PIPE_READ_SIDE ( 0 ) 
-#define PIPE_WRITE_SIDE ( 1 )
+#define PIPE_READ_SIDE ( 0 ) /* Define the read side for a pipe to simplify */
+#define PIPE_WRITE_SIDE ( 1 ) /* Define the write side for a pipe to simplify */
 
 #define TRUE ( 1 ) /* definierar den Boolska konstanten TRUE */
 #define FALSE ( 0 ) /* define the bool constant FALSE*/
@@ -15,24 +15,19 @@
 pid_t childpid; /* för child-processens PID vid fork() */
 
 int main(int argc, char **argv, char **envp)
-{
-	
+{	
 	 fprintf( stderr, "Parent (Parent, pid %ld) started\n",
            (long int) getpid() );
 
 	printf("argc: %d\n", argc);
 
-	int pipe_fileDesc[2]; /* File descriptiors for pipe*/
-	int returnValue; /* Return value, to findout if an error occured*/
+	int pipe_fileDesc[2]; /* File descriptiors for pipe */
+	int returnValue; /* Return value, to findout if an error occured */
+	int status; /* Return codes for children */ 
 
 	returnValue = pipe( pipe_fileDesc ); /* Create a pipe */
-
-	if ( -1 == returnValue)
-	{
-		perror("Cannot create pipe");
-		exit(1); 
-	}
-
+	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }
+/* ---------------------------- Child ---------------------------- */
 	childpid = fork(); /* Create the child process for printenv */ 
 	if (0 == childpid)
 	{
@@ -42,12 +37,9 @@ int main(int argc, char **argv, char **envp)
 		returnValue = dup2(pipe_fileDesc[ PIPE_READ_SIDE ], STDIN_FILENO);
 
 		/* Close the write end of this pipe, child doesn't have to write data*/
-		returnValue = close (pipe_fileDesc[PIPE_WRITE_SIDE]);
+		returnValue = close(pipe_fileDesc[PIPE_WRITE_SIDE]);
 		if (-1 == returnValue)
-		{
-			perror("Cannot close pipe");
-			exit(1);
-		}
+		{ perror("Cannot close pipe");	exit(1); }
 
 		if (argc == 1) /* Directly to sort */
 		{
@@ -57,17 +49,14 @@ int main(int argc, char **argv, char **envp)
 		}
 		else if (argc >= 2) /* Grep first!*/
 		{
-			/* code */
+			/* TODO: Handle Grep case */
 		}
-		else{
-			printf("ERROR! argc \n" );
-			exit(1);
-		}
+		else{ printf("ERROR! argc \n" );	exit(1); }
 	}
 
 	else{
-		// Parent
-		if (-1 == childpid) // Kaboom
+/* ---------------------------- Parent ---------------------------- */
+ 		if (-1 == childpid) /* Fork failed*/
 		{
 			char * errorMessage = "UNKNOWN";
 
@@ -84,22 +73,15 @@ int main(int argc, char **argv, char **envp)
 			fprintf(stderr, "fork() blew up because: %s\n", errorMessage);
 			exit(1);
 		}
+/* ---------------------------- Parent code starts here ---------------------------- */
 
-		// Parent code starts here
+		/* Duplicate Write side for the pipe */
 		returnValue = dup2(pipe_fileDesc[PIPE_WRITE_SIDE], STDOUT_FILENO);
-		if (-1 == returnValue)
-		{
-			perror("Parent cannot dup2 write end");
-			exit(1);
-		}
+		if (-1 == returnValue) { perror("Parent cannot dup2 write end");	exit(1); }
 
 		/* Close the read end of the pipe, we only need to write to the child */
-		returnValue = close (pipe_fileDesc[PIPE_READ_SIDE]);
-		if (-1 == returnValue)
-		{
-			perror("Parent cannot close read end");
-			exit(1);
-		}
+		returnValue = close(pipe_fileDesc[PIPE_READ_SIDE]);
+		if (-1 == returnValue) { perror("Parent cannot close read end");	exit(1); }
 
 		int i;
 		for (i = 0; envp[i] != NULL; ++i)
@@ -111,13 +93,10 @@ int main(int argc, char **argv, char **envp)
 			//printf("DEBUG: Size of envp: %d\n", **envp[i]);
 			returnValue = write(pipe_fileDesc[PIPE_WRITE_SIDE], &newLine, sizeof(newLine));
 
-			if (-1 == returnValue)
-				{
-					perror("Parent cannot write to pipe");
-					exit(1);
-				}
+			if (-1 == returnValue) { perror("Parent cannot write to pipe");	exit(1); }
 			//printf("%s\n", envp[i]);
-		} 
+		}
+		returnValue = close(pipe_fileDesc[PIPE_WRITE_SIDE]); /* Kill write end */
 	}
 	exit(0); // Nomral terminate
 }
