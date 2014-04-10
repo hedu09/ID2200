@@ -15,6 +15,7 @@
 pid_t childpid; /* för child-processens PID vid fork() */
 pid_t childpid2;
 pid_t childpid3;
+
 int main(int argc, char **argv, char **envp)
 {	
 	fprintf( stderr, "Parent (Parent, pid %ld) started\n",
@@ -59,7 +60,7 @@ int main(int argc, char **argv, char **envp)
 		exit(1);
 	}
 	returnValue = close(pipe_fileDesc[PIPE_WRITE_SIDE]);
-       	if (-1 == returnValue)	{ perror("Cannot close pipe");	exit(1); }
+    if ( -1 == returnValue) { perror("Cannot close pipe");	exit(1); }
 
 	returnValue = pipe( pipe_fileDesc2 );
 	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }
@@ -119,14 +120,76 @@ int main(int argc, char **argv, char **envp)
 		exit(1);
 	}
 	returnValue = close(pipe_fileDesc2[PIPE_READ_SIDE]);
-       	if (-1 == returnValue)	{ perror("Cannot close pipe");	exit(1); }
+    if (-1 == returnValue)	{ perror("Cannot close pipe");	exit(1); }
 
 /* ---------------------------- Parent ---------------------------- */
-	else{
- 	
-/* ---------------------------- Parent code starts here ---------------------------- */
-	printf("Parent here\n");
-		/* TODO Handle signals */
+	
+ 	childpid = wait( &status ); /* Vänta på ena child-processen */
+ 	if ( -1 == childpid) { perror( "wait() failed unexpectedly" ); exit( 1 ); }
+
+ 	if( WIFEXITED( status ) ) /* child-processen har kört klart */
+  	{
+    	int child_status = WEXITSTATUS( status );
+	    if( 0 != child_status ) /* child had problems */
+	    {
+	      fprintf( stderr, "Child (pid %ld) failed with exit code %d\n",
+	               (long int) childpid, child_status );
+	    }
+  	}
+  	else
+  	{
+	    if( WIFSIGNALED( status ) ) /* child-processen avbröts av signal */
+	    {
+	      int child_signal = WTERMSIG( status );
+	      fprintf( stderr, "Child (pid %ld) was terminated by signal no. %d\n",
+	               (long int) childpid, child_signal );
+	    }
 	}
+
+	childpid2 = wait( &status ); /* Vänta på ena child-processen */
+ 	if ( -1 == childpid2) { perror( "wait() failed unexpectedly" ); exit( 1 ); }
+
+ 	if( WIFEXITED( status ) ) /* child-processen har kört klart */
+  	{
+    	int child_status = WEXITSTATUS( status );
+	    if( 0 != child_status ) /* child had problems */
+	    {
+	      fprintf( stderr, "Child (pid %ld) failed with exit code %d\n",
+	               (long int) childpid2, child_status );
+	    }
+  	}
+  	else
+  	{
+	    if( WIFSIGNALED( status ) ) /* child-processen avbröts av signal */
+	    {
+	      int child_signal = WTERMSIG( status );
+	      fprintf( stderr, "Child (pid %ld) was terminated by signal no. %d\n",
+	               (long int) childpid2, child_signal );
+	    }
+	}
+
+	
+	childpid3 = wait( &status ); /* Vänta på ena child-processen */
+ 	if ( -1 == childpid3) { perror( "wait() failed unexpectedly" ); exit( 1 ); }
+
+ 	if( WIFEXITED( status ) ) /* child-processen har kört klart */
+  	{
+    	int child_status = WEXITSTATUS( status );
+	    if( 0 != child_status ) /* child had problems */
+	    {
+	      fprintf( stderr, "Child (pid %ld) failed with exit code %d\n",
+	               (long int) childpid3, child_status );
+	    }
+  	}
+  	else
+  	{
+	    if( WIFSIGNALED( status ) ) /* child-processen avbröts av signal */
+	    {
+	      int child_signal = WTERMSIG( status );
+	      fprintf( stderr, "Child (pid %ld) was terminated by signal no. %d\n",
+	               (long int) childpid3, child_signal );
+	    }
+	}
+
 	exit(0); // Nomral terminate
 }
