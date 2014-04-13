@@ -17,6 +17,14 @@ int main(int argc, char **argv, char **envp)
 {	
 	printf("DEBUG: argc: %d\n", argc); /* Debug for argc */
 
+	char *pagerEnv; 
+	pagerEnv = getenv("PAGER");
+	printf("Selected pager: %s\n", pagerEnv);
+	if (NULL == pagerEnv)
+	{
+		pagerEnv = "less";
+	}
+
 	fprintf( stderr, "Parent (Parent, pid %ld) started\n",
 		(long int) getpid() );
 
@@ -98,7 +106,7 @@ int main(int argc, char **argv, char **envp)
 		if (-1 == returnValue)	{ perror("Cannot close pipe");	exit(1); }
 
 		(void) execlp("sort", "sort", (char *) 0);
-		perror("Cannot exec printenv");
+		perror("Cannot exec sort");
 		exit(1);
 	}
 	returnValue = close(pipe_fileDescPrintToSort[PIPE_READ_SIDE]);
@@ -126,8 +134,8 @@ int main(int argc, char **argv, char **envp)
 
 		returnValue = dup2(pipe_fileDescSortToLess[PIPE_READ_SIDE], STDIN_FILENO);
 
-		(void) execlp("less", "less", (char *) 0);
-		perror("Cannot exec printenv");
+		(void) execlp(pagerEnv, pagerEnv, (char *) 0);
+		perror("Cannot exec pager");
 		exit(1);
 	}
 	returnValue = close(pipe_fileDescSortToLess[PIPE_READ_SIDE]);
