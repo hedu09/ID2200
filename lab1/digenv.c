@@ -35,7 +35,7 @@ int main(int argc, char **argv, char **envp)
 
 	if (argc == 2) /*  Grep */
 	{
-		printf("Run grep! \n");
+		printf("DEBUG: Run grep! \n");
 		int pipe_fileDescGrep[2];  /* File descriptiors for pipe, used in Grep case */
 		pid_t childpidGrep;  /* childProcessID for grep */
 	}
