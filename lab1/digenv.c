@@ -17,12 +17,11 @@ int main(int argc, char **argv, char **envp)
 {	
 	printf("DEBUG: argc: %d\n", argc); /* Debug for argc */
 
-	char *pagerEnv; 
-	pagerEnv = getenv("PAGER");
-	printf("Selected pager: %s\n", pagerEnv);
-	if (NULL == pagerEnv)
-	{
-		pagerEnv = "less";
+	char *pagerEnv; /* char pointer for the inviorment varible for the pager*/
+	pagerEnv = getenv("PAGER"); /* Get the page variable if it is set*/
+	printf("DEBUG: Selected pager: %s\n", pagerEnv);
+	if (NULL == pagerEnv) { /* Page enviorment isn't set*/
+		pagerEnv = "less"; /* Set it to less*/
 	}
 
 	fprintf( stderr, "Parent (Parent, pid %ld) started\n",
