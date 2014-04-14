@@ -9,6 +9,10 @@
 #define PIPE_READ_SIDE ( 0 ) /* Define the read side for a pipe to simplify */
 #define PIPE_WRITE_SIDE ( 1 ) /* Define the write side for a pipe to simplify */
 
+#define NO_READ ( 0 ) /* Define the read side for a pipe to simplify */
+#define READWRITE_CLOSE ( 1 ) /* Define the write side for a pipe to simplify */
+#define READWRITE_NO_CLOSE ( 2 ) /* Define the write side for a pipe to simplify */
+
 pid_t childpid; /* childProcessID for printenvp */
 pid_t childpidSort; /* childProcessID for sort */
 pid_t childpidLess; /* childProcessID for less */
@@ -33,15 +37,19 @@ void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char comma
 	{
 		fprintf( stderr, "Child (%s, pid %ld) started\n", command,	
 			(long int) getpid() );
-		if (read == 1){
+		if (read >= 1){
 			returnValue = dup2(pipe_readfiledesc[PIPE_READ_SIDE], STDIN_FILENO);
-			returnValue = close(pipe_readfiledesc[PIPE_WRITE_SIDE]);
-			if (-1 == returnValue)	{ perror("Cannot close pipe RFD");	exit(1); }
+			if (read == 1){
+				returnValue = close(pipe_readfiledesc[PIPE_WRITE_SIDE]);
+				if (-1 == returnValue)	{ perror("Cannot close pipe RFD");	exit(1); }
+			}
 		}
-		if (write == 1){
+		if (write >= 1){
 			returnValue = dup2(pipe_writefiledesc[PIPE_WRITE_SIDE], STDOUT_FILENO);	
-			returnValue = close(pipe_writefiledesc[PIPE_READ_SIDE]);
-			if (-1 == returnValue)	{ perror("Cannot close pipeWFD");	exit(1); }	
+			if( write == 1){
+				returnValue = close(pipe_writefiledesc[PIPE_READ_SIDE]);
+				if (-1 == returnValue)	{ perror("Cannot close pipeWFD");	exit(1); }
+			}	
 		}
 		
 		(void) execlp(command, command, (char *) 0);
@@ -49,11 +57,11 @@ void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char comma
 		exit(1);
 	}
 	/*parent kör här */
-	if (read == 1){ 
+	if (read >= 1){ 
 		returnValue = close(pipe_readfiledesc[PIPE_READ_SIDE]);
 		if (-1 == returnValue)	{ perror("Cannot close pipe Parent R");	exit(1); }
 	}
-	if (write == 1){
+	if (write >= 1){
 		returnValue = close(pipe_writefiledesc[PIPE_WRITE_SIDE]);
 		if (-1 == returnValue)	{ perror("Cannot close pipe Parent W");	exit(1); }
 	}
@@ -95,14 +103,14 @@ fprintf( stderr, "Parent (Parent, pid %ld) started\n",
 	returnValue = pipe( pipe_fileDesc); /* Create a pipe */
 	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }
 
-	createChild( pipe_fileDesc, pipe_fileDesc,  "printenv", 0, 1);
+	createChild( pipe_fileDesc, pipe_fileDesc,  "printenv", NO_READ, READWRITE_CLOSE);
 	
 	returnValue = pipe( pipe_fileDesc2); /* Create a pipe */
 	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }
 
-	createChild( pipe_fileDesc, pipe_fileDesc2,  "sort", 1, 1);
+	createChild( pipe_fileDesc, pipe_fileDesc2,  "sort", READWRITE_CLOSE, READWRITE_NO_CLOSE);
 
-	createChild( pipe_fileDesc2, pipe_fileDesc2,  "less", 1, 0);
+	createChild( pipe_fileDesc2, pipe_fileDesc2,  "less", READWRITE_NO_CLOSE, NO_READ);
 
 
 
