@@ -12,6 +12,7 @@
 pid_t childpid; /* childProcessID for printenvp */
 pid_t childpidSort; /* childProcessID for sort */
 pid_t childpidLess; /* childProcessID for less */
+pid_t childpidGrep;  /* childProcessID for grep */
 
 int main(int argc, char **argv, char **envp)
 {	
@@ -22,96 +23,127 @@ int main(int argc, char **argv, char **envp)
 	printf("DEBUG: Selected pager: %s\n", pagerEnv);
 	if (NULL == pagerEnv) { /* Page enviorment isn't set*/
 		pagerEnv = "less"; /* Set it to less*/
-	}
+}
 
-	fprintf( stderr, "Parent (Parent, pid %ld) started\n",
-		(long int) getpid() );
+fprintf( stderr, "Parent (Parent, pid %ld) started\n",
+	(long int) getpid() );
 
 	int returnValue; /* Return value, to findout if an error occured */
 	int status; /* Return codes for children */ 
 
 	int pipe_fileDescPrintToSort[2]; /* File descriptiors for pipe, printEnvp to sort */
+	int pipe_fileDescGrep[2];  /* File descriptiors for pipe, used in Grep case */
 	int pipe_fileDescSortToLess[2]; /* File descriptiors for pipe, sort to less */
 
 	if (argc == 2) /*  Grep */
-	{
-		printf("DEBUG: Run grep! \n");
-		int pipe_fileDescGrep[2];  /* File descriptiors for pipe, used in Grep case */
-		pid_t childpidGrep;  /* childProcessID for grep */
-	}
+{
+	printf("DEBUG: Run grep! \n");
+}
 
-	if (argc >= 3) /* Invalid input terminate! */
+	if (argc >= 9000) /* Invalid input terminate! */
 	{
-		printf("To many input parameters! \n");
+	printf("To many input parameters! \n");
 		exit(0); /* TODO: 0 or 1 ?? */
 	}
-	
+
 	returnValue = pipe( pipe_fileDescPrintToSort ); /* Create a pipe */
-	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }
+if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }
 
 	childpid = fork(); /* Create the child process for printenv */ 
 	if (-1 == childpid) /* Fork failed*/
-	{
-		char * errorMessage = "UNKNOWN";
-		if (EAGAIN == errno){errorMessage = "cannot allocate page table";}
-		if (ENOMEM == errno){errorMessage = "cannot allocate kernel data";}
-		fprintf(stderr, "fork() blew up because: %s\n", errorMessage);
-		exit(1);
-	}
+{
+	char * errorMessage = "UNKNOWN";
+	if (EAGAIN == errno){errorMessage = "cannot allocate page table";}
+	if (ENOMEM == errno){errorMessage = "cannot allocate kernel data";}
+	fprintf(stderr, "fork() blew up because: %s\n", errorMessage);
+	exit(1);
+}
 	/* ---------------------------- Child printEnv ---------------------------- */
-	if (0 == childpid)
+if (0 == childpid)
+{
+	fprintf( stderr, "Child (printenv, pid %ld) started\n",	
+		(long int) getpid() );
+
+	returnValue = dup2(pipe_fileDescPrintToSort[PIPE_WRITE_SIDE], STDOUT_FILENO);
+
+		/* Close the read end of this pipe, child doesn't have to write data*/
+	returnValue = close(pipe_fileDescPrintToSort[PIPE_READ_SIDE]);
+	if (-1 == returnValue)
+		{ perror("Cannot close pipe");	exit(1); }
+
+	(void) execlp("printenv", "printenv", (char *) 0);
+	perror("Cannot exec printenv");
+	exit(1);
+}
+
+	/* Close write side of pipe, it is not needed anymore */
+returnValue = close(pipe_fileDescPrintToSort[PIPE_WRITE_SIDE]);
+if ( -1 == returnValue) { perror("Cannot close pipe");	exit(1); }
+
+returnValue = pipe( pipe_fileDescSortToLess );
+if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }
+
+if (argc >= 2)
+{
+	returnValue = pipe( pipe_fileDescGrep ); /* Create a pipe */
+	childpidGrep = fork();
+		/* ---------------------------- Child grep ---------------------------- */
+	if (0 == childpidGrep)
 	{
-		fprintf( stderr, "Child (printenv, pid %ld) started\n",	
+		fprintf( stderr, "Child (GREP, pid %ld) started\n",	
 			(long int) getpid() );
 
 		returnValue = dup2(pipe_fileDescPrintToSort[PIPE_WRITE_SIDE], STDOUT_FILENO);
 
 		/* Close the read end of this pipe, child doesn't have to write data*/
-		returnValue = close(pipe_fileDescPrintToSort[PIPE_READ_SIDE]);
+		returnValue = close(pipe_fileDescGrep[PIPE_READ_SIDE]);
 		if (-1 == returnValue)
 			{ perror("Cannot close pipe");	exit(1); }
 
-		(void) execlp("printenv", "printenv", (char *) 0);
-		perror("Cannot exec printenv");
+		(void) execvp("grep", argv[1]);
+		perror("Cannot exec grep");
 		exit(1);
 	}
 
 	/* Close write side of pipe, it is not needed anymore */
-	returnValue = close(pipe_fileDescPrintToSort[PIPE_WRITE_SIDE]);
+	returnValue = close(pipe_fileDescGrep[PIPE_WRITE_SIDE]);
 	if ( -1 == returnValue) { perror("Cannot close pipe");	exit(1); }
 
 	returnValue = pipe( pipe_fileDescSortToLess );
 	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }
 
-	childpidSort = fork();
+}
+
+childpidSort = fork();
 	if (-1 == childpidSort) /* Fork failed*/
-	{
-		char * errorMessage = "UNKNOWN";
-		if (EAGAIN == errno){errorMessage = "cannot allocate page table";}
-		if (ENOMEM == errno){errorMessage = "cannot allocate kernel data";}
-		fprintf(stderr, "fork() blew up because: %s\n", errorMessage);
-		exit(1);
-	}
+{
+	char * errorMessage = "UNKNOWN";
+	if (EAGAIN == errno){errorMessage = "cannot allocate page table";}
+	if (ENOMEM == errno){errorMessage = "cannot allocate kernel data";}
+	fprintf(stderr, "fork() blew up because: %s\n", errorMessage);
+	exit(1);
+}
+
 	/* ---------------------------- Child sort ---------------------------- */
-	else if (0 == childpidSort)
-	{
-		fprintf( stderr, "Child (sort, pid %ld) started\n",	
-			(long int) getpid() );
+else if (0 == childpidSort)
+{
+	fprintf( stderr, "Child (sort, pid %ld) started\n",	
+		(long int) getpid() );
 
-		returnValue = dup2(pipe_fileDescPrintToSort[PIPE_READ_SIDE], STDIN_FILENO);
-		returnValue = dup2(pipe_fileDescSortToLess[PIPE_WRITE_SIDE], STDOUT_FILENO);
+	returnValue = dup2(pipe_fileDescPrintToSort[PIPE_READ_SIDE], STDIN_FILENO);
+	returnValue = dup2(pipe_fileDescSortToLess[PIPE_WRITE_SIDE], STDOUT_FILENO);
 
-		returnValue = close(pipe_fileDescSortToLess[PIPE_READ_SIDE]);
-		if (-1 == returnValue)	{ perror("Cannot close pipe");	exit(1); }
-
-		(void) execlp("sort", "sort", (char *) 0);
-		perror("Cannot exec sort");
-		exit(1);
-	}
-	returnValue = close(pipe_fileDescPrintToSort[PIPE_READ_SIDE]);
+	returnValue = close(pipe_fileDescSortToLess[PIPE_READ_SIDE]);
 	if (-1 == returnValue)	{ perror("Cannot close pipe");	exit(1); }
-	returnValue = close(pipe_fileDescSortToLess[PIPE_WRITE_SIDE]);
-	if (-1 == returnValue)	{ perror("Cannot close pipe");	exit(1); }
+
+	(void) execlp("sort", "sort", (char *) 0);
+	perror("Cannot exec sort");
+	exit(1);
+}
+returnValue = close(pipe_fileDescPrintToSort[PIPE_READ_SIDE]);
+if (-1 == returnValue)	{ perror("Cannot close pipe");	exit(1); }
+returnValue = close(pipe_fileDescSortToLess[PIPE_WRITE_SIDE]);
+if (-1 == returnValue)	{ perror("Cannot close pipe");	exit(1); }
 
 	/*
 	returnValue = pipe( pipe_fileDescSortToLess );
@@ -160,6 +192,30 @@ int main(int argc, char **argv, char **envp)
 			int child_signal = WTERMSIG( status );
 			fprintf( stderr, "Child (pid %ld) was terminated by signal no. %d\n",
 				(long int) childpid, child_signal );
+		}
+	}
+
+	if(argc >= 2){
+		childpidGrep = wait( &status ); /* Vänta på ena child-processen */
+		if ( -1 == childpidGrep) { perror( "wait() failed unexpectedly" ); exit( 1 ); }
+
+	 	if( WIFEXITED( status ) ) /* child-processen har kört klart */
+		{
+			int child_status = WEXITSTATUS( status );
+		    if( 0 != child_status ) /* child had problems */
+			{
+				fprintf( stderr, "Child (pid %ld) failed with exit code %d\n",
+					(long int) childpidGrep, child_status );
+			}
+		}
+		else
+		{
+		    if( WIFSIGNALED( status ) ) /* child-processen avbröts av signal */
+			{
+				int child_signal = WTERMSIG( status );
+				fprintf( stderr, "Child (pid %ld) was terminated by signal no. %d\n",
+					(long int) childpidGrep, child_signal );
+			}
 		}
 	}
 
