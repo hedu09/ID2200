@@ -4,6 +4,7 @@
 #include <stdio.h> /* definierar stderr, dit felmeddelanden skrivs */
 #include <stdlib.h> /* definierar bland annat exit() */
 #include <unistd.h> /* definierar bland annat fork() */
+#include <string.h>
 
 
 #define PIPE_READ_SIDE ( 0 ) /* Define the read side for a pipe to simplify */
@@ -50,7 +51,7 @@ void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char comma
 			}	
 		}
 		
-		if (command == "grep")
+		if (strcmp( "grep", command) == 0)
 		{
 			(void) execlp("grep", "grep", argv[1] , (char *) 0);
 			perror("No matches found");
@@ -136,6 +137,7 @@ int main(int argc, char **argv, char **envp)
 {	
 	printf("DEBUG: argc: %d\n", argc); /* Debug for argc */
 
+	/* TODO: Finns inte less pröva more!!!*/
 	char *pagerEnv; /* char pointer for the inviorment varible for the pager*/
 	pagerEnv = getenv("PAGER"); /* Get the page variable if it is set*/
 	printf("DEBUG: Selected pager: %s\n", pagerEnv);
