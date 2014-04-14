@@ -5,6 +5,7 @@
 #include <stdlib.h> /* definierar bland annat exit() */
 #include <unistd.h> /* definierar bland annat fork() */
 #include <string.h>
+#include <wait.h>
 
 
 #define PIPE_READ_SIDE ( 0 ) /* Define the read side for a pipe to simplify */
@@ -143,6 +144,21 @@ int main(int argc, char **argv, char **envp)
 	printf("DEBUG: Selected pager: %s\n", pagerEnv);
 	if (NULL == pagerEnv) { /* Page enviorment isn't set*/
 		pagerEnv = "less"; /* Set it to less*/
+
+		/* Så här kan vi inte göra eftersom vi byter context!
+		int ret;
+		(void) execlp("which", "which", pagerEnv , (char *) 0);
+
+		printf("Ret: %d\n", ret);
+		if (1 == ret)
+		{
+			pagerEnv = "more";
+		}
+		if(2 == ret){
+			perror("No pager found");
+			exit(1);
+		}
+		*/
 	}
 
 fprintf( stderr, "Parent (Parent, pid %ld) started\n",
