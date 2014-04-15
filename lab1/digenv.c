@@ -53,7 +53,8 @@ void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char comma
 		
 		if (strcmp( "grep", command) == 0)
 		{
-			(void) execlp("grep", "grep", argv[1] , (char *) 0);
+						argv[0]= "grep";
+			(void) execvp("grep", argv);
 			perror("No matches found");
 			exit(1);
 		}
@@ -196,8 +197,9 @@ else if (argc >= 2)
 	returnValue = pipe( pipe_fileDesc2); /* Create a pipe */
 if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }
 
+
 createChild( pipe_fileDesc, pipe_fileDesc2, "sort", READWRITE_CLOSE, READWRITE_NO_CLOSE, argv);
-createChild( pipe_fileDesc2, pipe_fileDesc2, "less", READWRITE_NO_CLOSE, NO_READ, argv);
+createChild( pipe_fileDesc2, pipe_fileDesc2, pagerEnv , READWRITE_NO_CLOSE, NO_READ, argv);
 
 	/* WOW SO CODE VERY FULHACK */
 	childHandler();
