@@ -15,7 +15,6 @@
 #define READWRITE_NO_CLOSE ( 2 ) /* Define the write side for a pipe to simplify */
 
 pid_t childpid; /* childProcessID for printenvp */
-
 int returnValue; /* Return value, to findout if an error occured */
 int status; /* Return codes for children */ 
 
@@ -159,7 +158,6 @@ int main(int argc, char **argv, char **envp)
 {	
 	printf("DEBUG: argc: %d\n", argc); /* Debug for argc */
 
-	
 	char *pagerEnv; /* char pointer for the inviorment varible for the pager*/
 	pagerEnv = getenv("PAGER"); /* Get the page variable if it is set*/
 	printf("DEBUG: Selected pager: %s\n", pagerEnv);
@@ -167,43 +165,41 @@ int main(int argc, char **argv, char **envp)
 		pagerEnv = "less"; /* Set it to less*/ 
 	}
 
-fprintf( stderr, "Parent (Parent, pid %ld) started\n",
+	fprintf( stderr, "Parent (Parent, pid %ld) started\n",
 	(long int) getpid() );
 
 	int pipe_fileDesc[2]; /* File descriptiors for pipe, printEnvp to sort -> grep  */
 	int pipe_fileDesc2[2];  /* File descriptiors for pipe, printEnvp or grep -> sort -> less*/
 	int pipe_fileDesc3[2]; /* File descriptiors for pipe, printEnvp -> grep -> sort */
-
 	
 	returnValue = pipe( pipe_fileDesc); /* Create a pipe */
-if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); } /* check return value*/
+	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); } /* check return value*/
 
-if (argc == 1){ /* no extra arguments then create a child printenv that pipes printenv -> sort */
-	createChild( pipe_fileDesc, pipe_fileDesc,  "printenv", NO_READ, READWRITE_CLOSE, argv);
-}
-else if (argc >= 2)/* extra arguments then create a child printenv that pipes printenv -> grep */
-{
-	returnValue = pipe(pipe_fileDesc3);/* create pipe for printenv -> grep -> sort*/
-	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }/* check return value*/
-	
-	/* execute printenv and pipe STDIN -> printenv -> grep */
-	createChild(pipe_fileDesc, pipe_fileDesc3, "printenv", NO_READ, READWRITE_CLOSE, argv); 
-	/* execute grep pipe printenv -> grep -> sort */
-	createChild(pipe_fileDesc3, pipe_fileDesc, "grep", READWRITE_NO_CLOSE, READWRITE_NO_CLOSE, argv); 
-}
+	if (argc == 1){ /* no extra arguments then create a child printenv that pipes printenv -> sort */
+		createChild( pipe_fileDesc, pipe_fileDesc,  "printenv", NO_READ, READWRITE_CLOSE, argv);
+	}
+	else if (argc >= 2)/* extra arguments then create a child printenv that pipes printenv -> grep */
+	{
+		returnValue = pipe(pipe_fileDesc3);/* create pipe for printenv -> grep -> sort*/
+		if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }/* check return value*/
+		
+		/* execute printenv and pipe STDIN -> printenv -> grep */
+		createChild(pipe_fileDesc, pipe_fileDesc3, "printenv", NO_READ, READWRITE_CLOSE, argv); 
+		/* execute grep pipe printenv -> grep -> sort */
+		createChild(pipe_fileDesc3, pipe_fileDesc, "grep", READWRITE_NO_CLOSE, READWRITE_NO_CLOSE, argv); 
+	}
 
 	returnValue = pipe( pipe_fileDesc2); /* Create a pipe printenv/grep -> sort -> less*/
-if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }/* check return value*/
+	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }/* check return value*/
 
 	/* execute grep pipe printenv/grep -> sort -> less */
-createChild( pipe_fileDesc, pipe_fileDesc2, "sort", READWRITE_CLOSE, READWRITE_NO_CLOSE, argv); 
+	createChild( pipe_fileDesc, pipe_fileDesc2, "sort", READWRITE_CLOSE, READWRITE_NO_CLOSE, argv); 
 	/* execute  pipe sort -> less -> STDOUT */
-createChild( pipe_fileDesc2, pipe_fileDesc2, pagerEnv , READWRITE_NO_CLOSE, NO_READ, argv);
+	createChild( pipe_fileDesc2, pipe_fileDesc2, pagerEnv , READWRITE_NO_CLOSE, NO_READ, argv);
 
 	/* Run one childhandler for each child that is being created */
 	childHandler();
-	if (argc >= 2)
-	{
+	if (argc >= 2){
 		childHandlerGrep();
 	}
 	childHandler();
