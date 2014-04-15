@@ -19,11 +19,20 @@ pid_t childpid; /* childProcessID for printenvp */
 
 int returnValue; /* Return value, to findout if an error occured */
 int status; /* Return codes for children */ 
-
+/* createChild
+@Param	pipe_readfiledesc[2] - pipe filedescriptor the child to read from 
+@Param	pipe_writefiledesc[2]- pipe filedescriptor the child to write to 
+@Param	command[] - command that the child will run in execlp unless it grep it will run in execvp 
+@Param	read	- if 0 do not read from pipe, if 1 read and close write pipe of pipe_readfiledesc, 
+		if 2 read from pipe but dont close write pipe_readfiledesc
+@Param	write	- if 0 do not write from pipe, if 1 write and close read pipe of pipe_writefiledesc, 
+		if 2 write from pipe but dont close read of pipe_writefiledesc
+@Param	**argv	
+*/
 void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char command[], int read, int write, char **argv){
 	
-	childpid = fork();
-	if (-1 == childpid) /* Fork failed*/
+	childpid = fork(); /* Create a child process*/
+	if (-1 == childpid) /* Check if fork failed and print error message*/
 	{
 		char * errorMessage = "UNKNOWN";
 		if (EAGAIN == errno){errorMessage = "cannot allocate page table";}
@@ -33,40 +42,45 @@ void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char comma
 	}
 
 	/* ---------------------------- Child ---------------------------- */
-	else if (0 == childpid)
-	{
+	else if (0 == childpid) 
+	{	/* child running*/
 		fprintf( stderr, "Child (%s, pid %ld) started\n", command,	
 			(long int) getpid() );
-		if (read >= 1){
-			returnValue = dup2(pipe_readfiledesc[PIPE_READ_SIDE], STDIN_FILENO);
-			if (read == 1){
+		if (read >= 1){ /* Check if child will need to read from pipe*/
+			returnValue = dup2(pipe_readfiledesc[PIPE_READ_SIDE], STDIN_FILENO); /* copy pipe read side to STDIN
+			so everything sent to STDIN will be sent to the pipe*/
+			if (read == 1){ /*Check if we want to close the pipe write side*/
 				returnValue = close(pipe_readfiledesc[PIPE_WRITE_SIDE]);
 				if (-1 == returnValue)	{ perror("Cannot close pipe RFD");	exit(1); }
 			}
 		}
 		if (write >= 1){
-			returnValue = dup2(pipe_writefiledesc[PIPE_WRITE_SIDE], STDOUT_FILENO);	
-			if( write == 1){
+			returnValue = dup2(pipe_writefiledesc[PIPE_WRITE_SIDE], STDOUT_FILENO);	/* copy pipe write side to STDOUT
+			so everything writen to STDOUT will be written to the pipe*/
+			if( write == 1){ /*Check if we want to close the pipe read side*/
 				returnValue = close(pipe_writefiledesc[PIPE_READ_SIDE]);
 				if (-1 == returnValue)	{ perror("Cannot close pipeWFD");	exit(1); }
 			}	
 		}
 		
-		if (strcmp( "grep", command) == 0)
+		if (strcmp( "grep", command) == 0) /* Run grep with execvp */
 		{
-						argv[0]= "grep";
-			(void) execvp("grep", argv);
+			argv[0]= "grep"; /*replace argv first element with grep */
+			(void) execvp("grep", argv);/* run grep with arguments in argv*/
 			perror("No matches found");
 			exit(1);
 		}
 		else
 		{
-			(void) execlp(command, command, (char *) 0);
+			(void) execlp(command, command, (char *) 0); /* execute*/
+			if (strcmp( "less", command) == 0){ /* if less fails run more*/
+				(void) execlp("more", "more", (char *) 0);
+			}
 		}
 		perror("Cannot exec perror roar! row65");
 		exit(1);
 	}
-	/*parent kör här */
+	/* ---------------------------- Parent ---------------------------- */
 	if (read >= 1){ 
 		returnValue = close(pipe_readfiledesc[PIPE_READ_SIDE]);
 		if (-1 == returnValue)	{ perror("Cannot close pipe Parent R");	exit(1); }
