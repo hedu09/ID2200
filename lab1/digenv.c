@@ -71,7 +71,7 @@ void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char comma
 		}
 		else
 		{
-			(void) execlp(command, command, (char *) 0); /* execute*/
+			(void) execlp(command, command, (char *) 0); /* execute command*/
 			if (strcmp( "less", command) == 0){ /* if less fails run more*/
 				(void) execlp("more", "more", (char *) 0);
 			}
@@ -80,11 +80,11 @@ void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char comma
 		exit(1);
 	}
 	/* ---------------------------- Parent ---------------------------- */
-	if (read >= 1){ 
+	if (read >= 1){ /* if child reads we need to close the parents read pipe*/
 		returnValue = close(pipe_readfiledesc[PIPE_READ_SIDE]);
 		if (-1 == returnValue)	{ perror("Cannot close pipe Parent R");	exit(1); }
 	}
-	if (write >= 1){
+	if (write >= 1){/* if child writes we need to close the parents write pipe*/
 		returnValue = close(pipe_writefiledesc[PIPE_WRITE_SIDE]);
 		if (-1 == returnValue)	{ perror("Cannot close pipe Parent W");	exit(1); }
 	}
@@ -152,27 +152,12 @@ int main(int argc, char **argv, char **envp)
 {	
 	printf("DEBUG: argc: %d\n", argc); /* Debug for argc */
 
-	/* TODO: Finns inte less pröva more!!!*/
+	
 	char *pagerEnv; /* char pointer for the inviorment varible for the pager*/
 	pagerEnv = getenv("PAGER"); /* Get the page variable if it is set*/
 	printf("DEBUG: Selected pager: %s\n", pagerEnv);
 	if (NULL == pagerEnv) { /* Page enviorment isn't set*/
 		pagerEnv = "less"; /* Set it to less*/
-
-		/* Så här kan vi inte göra eftersom vi byter context!
-		int ret;
-		(void) execlp("which", "which", pagerEnv , (char *) 0);
-
-		printf("Ret: %d\n", ret);
-		if (1 == ret)
-		{
-			pagerEnv = "more";
-		}
-		if(2 == ret){
-			perror("No pager found");
-			exit(1);
-		}
-		*/
 	}
 
 fprintf( stderr, "Parent (Parent, pid %ld) started\n",
@@ -182,17 +167,7 @@ fprintf( stderr, "Parent (Parent, pid %ld) started\n",
 	int pipe_fileDesc2[2];  /* File descriptiors for pipe, used in Grep case */
 	int pipe_fileDesc3[2]; /* File descriptiors for pipe, sort to less */
 
-	if (argc == 2) /*  Grep */
-{
-	printf("DEBUG: Run grep! \n");
-}
-
-	if (argc >= 9000) /* Invalid input terminate! */
-{
-	printf("To many input parameters! \n");
-		exit(0); /* TODO: 0 or 1 ?? */
-}
-
+	
 	returnValue = pipe( pipe_fileDesc); /* Create a pipe */
 if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }
 
