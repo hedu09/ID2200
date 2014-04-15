@@ -5,8 +5,7 @@
 #include <stdlib.h> /* definierar bland annat exit() */
 #include <unistd.h> /* definierar bland annat fork() */
 #include <string.h>
-#include <wait.h>
-
+#include <sys/wait.h>
 
 #define PIPE_READ_SIDE ( 0 ) /* Define the read side for a pipe to simplify */
 #define PIPE_WRITE_SIDE ( 1 ) /* Define the write side for a pipe to simplify */
