@@ -167,6 +167,7 @@ At the end main will wait for each child status to handle them with signal if th
 */
 int main(int argc, char **argv)
 {	
+		
 	char *pagerEnv; /* char pointer for the inviorment varible for the pager*/
 	pagerEnv = getenv("PAGER"); /* Get the page variable if it is set*/
 	printf("DEBUG: Selected pager: %s\n", pagerEnv);
