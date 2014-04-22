@@ -1,11 +1,10 @@
-/* Include-rader ska vara allra först i ett C-program */
 #include <sys/types.h> /* definierar bland annat typen pid_t */
 #include <errno.h> /* definierar felkontrollvariabeln errno */
 #include <stdio.h> /* definierar stderr, dit felmeddelanden skrivs */
 #include <stdlib.h> /* definierar bland annat exit() */
 #include <unistd.h> /* definierar bland annat fork() */
-#include <string.h>
-#include <sys/wait.h>
+#include <string.h> /* Define strcmp */
+#include <sys/wait.h> /* Prevent gcc -Wall errors in Mac */
 
 #define PIPE_READ_SIDE ( 0 ) /* Define the read side for a pipe to simplify */
 #define PIPE_WRITE_SIDE ( 1 ) /* Define the write side for a pipe to simplify */
@@ -15,7 +14,6 @@
 #define READWRITE_NO_CLOSE ( 2 ) /* Define the write side for a pipe to simplify */
 
 pid_t childpid; /* childProcessID for printenvp */
-
 int returnValue; /* Return value, to findout if an error occured */
 int status; /* Return codes for children */ 
 
@@ -29,8 +27,8 @@ int status; /* Return codes for children */
 		if 2 write from pipe but dont close read of pipe_writefiledesc
 @Param	**argv	- Same param as in main, arguments to be sent to run with the command grep. 
 */
-void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char command[], int read, int write, char **argv){
-	
+void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char command[], int read, int write, char **argv)
+{	
 	childpid = fork(); /* Create a child process*/
 	if (-1 == childpid) /* Check if fork failed and print error message*/
 	{
@@ -95,6 +93,7 @@ void createChild(int pipe_readfiledesc[2], int pipe_writefiledesc[2], char comma
 		if (-1 == returnValue)	{ perror("Cannot close pipe Parent W");	exit(1); }/* Check if pipe was closed correctly*/
 	}
 }
+
 /* Handles the child when the child has terminated by signal or died with or without error
 we need to handle the child when it dies or it will become a zombie */
 void childHandler()
@@ -167,7 +166,6 @@ At the end main will wait for each child status to handle them with signal if th
 */
 int main(int argc, char **argv)
 {	
-		
 	char *pagerEnv; /* char pointer for the inviorment varible for the pager*/
 	pagerEnv = getenv("PAGER"); /* Get the page variable if it is set*/
 	printf("DEBUG: Selected pager: %s\n", pagerEnv);
@@ -175,7 +173,7 @@ int main(int argc, char **argv)
 		pagerEnv = "less"; /* Set it to less*/ 
 	}
 
-fprintf( stderr, "Parent (Parent, pid %ld) started\n",
+	fprintf( stderr, "Parent (Parent, pid %ld) started\n",
 	(long int) getpid() ); /* printing parents id for easier debuggning*/
 
 	int pipe_fileDesc[2]; /* File descriptiors for pipe, printEnvp to sort -> grep  */
@@ -184,34 +182,34 @@ fprintf( stderr, "Parent (Parent, pid %ld) started\n",
 
 	
 	returnValue = pipe( pipe_fileDesc); /* Create a pipe */
-if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); } /* check return value for errors*/
+	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); } /* check return value for errors*/
 
-if (argc == 1){ /* no extra arguments then create a child printenv that pipes printenv -> sort */
-	createChild( pipe_fileDesc, pipe_fileDesc,  "printenv", NO_READ, READWRITE_CLOSE, argv);
-}
-else if (argc >= 2)/* extra arguments then create a child printenv that pipes printenv -> grep */
-{
-	returnValue = pipe(pipe_fileDesc3);/* create pipe for printenv -> grep -> sort*/
-	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }/* check return value for errors*/
-	
-	/* execute printenv and pipe STDIN -> printenv -> grep */
-	createChild(pipe_fileDesc, pipe_fileDesc3, "printenv", NO_READ, READWRITE_CLOSE, argv); 
-	/* execute grep pipe printenv -> grep -> sort */
-	createChild(pipe_fileDesc3, pipe_fileDesc, "grep", READWRITE_NO_CLOSE, READWRITE_NO_CLOSE, argv); 
-}
+	if (argc == 1){ /* no extra arguments then create a child printenv that pipes printenv -> sort */
+		createChild( pipe_fileDesc, pipe_fileDesc,  "printenv", NO_READ, READWRITE_CLOSE, argv);
+	}
+
+	else if (argc >= 2)/* extra arguments then create a child printenv that pipes printenv -> grep */
+	{
+		returnValue = pipe(pipe_fileDesc3);/* create pipe for printenv -> grep -> sort*/
+		if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }/* check return value for errors*/
+		
+		/* execute printenv and pipe STDIN -> printenv -> grep */
+		createChild(pipe_fileDesc, pipe_fileDesc3, "printenv", NO_READ, READWRITE_CLOSE, argv); 
+		/* execute grep pipe printenv -> grep -> sort */
+		createChild(pipe_fileDesc3, pipe_fileDesc, "grep", READWRITE_NO_CLOSE, READWRITE_NO_CLOSE, argv); 
+	}
 
 	returnValue = pipe( pipe_fileDesc2); /* Create a pipe printenv/grep -> sort -> less*/
-if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }/* check return value*/
+	if ( -1 == returnValue) { perror("Cannot create pipe");	exit(1); }/* check return value*/
 
 	/* execute grep pipe printenv/grep -> sort -> less */
-createChild( pipe_fileDesc, pipe_fileDesc2, "sort", READWRITE_CLOSE, READWRITE_NO_CLOSE, argv); 
+	createChild( pipe_fileDesc, pipe_fileDesc2, "sort", READWRITE_CLOSE, READWRITE_NO_CLOSE, argv); 
 	/* execute  pipe sort -> less -> STDOUT */
-createChild( pipe_fileDesc2, pipe_fileDesc2, pagerEnv , READWRITE_NO_CLOSE, NO_READ, argv);
+	createChild( pipe_fileDesc2, pipe_fileDesc2, pagerEnv , READWRITE_NO_CLOSE, NO_READ, argv);
 
 	/* Run one childhandler for each child that is being created */
 	childHandler();
-	if (argc >= 2)
-	{
+	if (argc >= 2) {
 		childHandlerGrep();
 	}
 	childHandler();
