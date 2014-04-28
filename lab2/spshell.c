@@ -75,16 +75,17 @@ int main(int argc, char **argv)
 		printf("DEBUG: Start of loop\n");
 		fgets(inputBuffer, BUFFERSIZE , stdin); /* Read command from terminal */
 		inputBuffer[strlen(inputBuffer)-1]= '\0'; /* Remove the newline char and replace it with null */ 
-		/*
-		if (strcmp("\n", inputBuffer) == 0)
+		
+		char *arg = strtok(inputBuffer, " "); /* Split the input on space */
+		
+		/* Incase of spaces or enter*/
+		if (arg == NULL)
 		{
 			printf("Say again?\n");
-			continue;
+			continue; /* Reloop */
 		}
-		*/
-		char *arg = strtok(inputBuffer, " "); /* Split the input on space */
 
-		if (strcmp( "exit", arg) == 0) /* Exit!*/
+		if (strcmp( "exit", arg) == 0) /* Exit command was given */
 		{
 			free(arguments); /* Relese memory */
 			printf("Thank you come again!\n");
