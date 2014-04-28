@@ -18,10 +18,23 @@ int main(int argc, char **argv)
 	fprintf( stderr, "Parent (Parent, pid %ld) started\n", (long int) getpid() );  /* printing parents id for easier debuggning*/
 
 	char inputBuffer[BUFFERSIZE]; /* Declare input buffer for command, hard code to Stack */
-
+	char **arguments = (char **) calloc (ARGVSIZE,  BUFFERSIZE); /* Allocate memory for toknizer */
+	
 	fgets(inputBuffer, BUFFERSIZE , stdin); /* Read command from terminal */
-
-	printf("DEBUG: input: %s\n", inputBuffer);
-
-	exit(0); // Normal terminate
+	inputBuffer[strlen(inputBuffer)-1]= '\0';
+	
+	
+	char *arg = strtok(inputBuffer, " "); /* Split the input on space */
+	
+	int i = 0;
+	while( arg != NULL){ /* Read until NULL */ 
+		arguments[i] = arg; /* Point to the input */
+		printf("DEBUG: input:%s:\n", arguments[i]);
+		arg = strtok(NULL, " "); /* Move on */
+		i++;
+	}
+	
+	(void) execvp(arguments[0],arguments);
+	perror("Cannot exec perror");
+	exit(1); // error
 }
