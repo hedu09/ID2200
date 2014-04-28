@@ -5,6 +5,7 @@
 #include <unistd.h> /* definierar bland annat fork() */
 #include <string.h> /* Define strcmp */
 #include <sys/wait.h> /* Prevent gcc -Wall errors in Mac */
+#include <unistd.h> /* Add the cd command */
 
 /* Function declarations */
 void createChild (char**);
@@ -99,7 +100,13 @@ int main(int argc, char **argv)
 			arg = strtok(NULL, " "); /* Move on */
 			i++;
 		}
-
+		/* ls breaks if we cd .., however ls with ls -l works?
+		if (strcmp( "cd", arguments[0]) == 0) 
+		{
+			chdir(arguments[1]);
+			continue;
+		}
+		*/
 		createChild(arguments);
 		childHandler();
 		printf("DEBUG: End of loop\n");
