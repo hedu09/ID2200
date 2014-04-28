@@ -13,6 +13,26 @@ int status; /* Return codes for children */
 #define BUFFERSIZE (81) /* Define maximum size of the buffer, assumption from lab specification */
 #define ARGVSIZE (6) /* Define maximum size of the ARGC, assumption from lab specification */
 
+void createChild(char command[])
+{
+	childpid = fork();
+	if ( -1 == childpid)
+	{
+		char * errorMessage = "UNKNOWN"; /* if no known error message print UNKNOWN*/
+		if (EAGAIN == errno){errorMessage = "cannot allocate page table";}
+		if (ENOMEM == errno){errorMessage = "cannot allocate kernel data";}
+		fprintf(stderr, "fork() blew up because: %s\n", errorMessage);
+		exit(1);/* Exit with error*/
+	}
+	else
+	{
+		(void) execvp(command[0], arguments); /* Execute command */
+	}
+}
+void childHandler()
+{
+
+}
 int main(int argc, char **argv)
 {	
 	fprintf( stderr, "Parent (Parent, pid %ld) started\n", (long int) getpid() );  /* printing parents id for easier debuggning*/
@@ -33,8 +53,10 @@ int main(int argc, char **argv)
 		arg = strtok(NULL, " "); /* Move on */
 		i++;
 	}
-	
-	(void) execvp(arguments[0],arguments);
+
+	createChild(arguments[0]);
+	childHandler();
+
 	perror("Cannot exec perror");
 	exit(1); // error
 }
