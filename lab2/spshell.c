@@ -71,21 +71,39 @@ int main(int argc, char **argv)
 	char inputBuffer[BUFFERSIZE]; /* Declare input buffer for command, hard code to Stack */
 	char **arguments = (char **) calloc (ARGVSIZE,  BUFFERSIZE); /* Allocate memory for toknizer */
 	
-	fgets(inputBuffer, BUFFERSIZE , stdin); /* Read command from terminal */
-	inputBuffer[strlen(inputBuffer)-1]= '\0';
-	
-	/* TODO: Segemntation fault upon pressing enter */
-	char *arg = strtok(inputBuffer, " "); /* Split the input on space */
-	
-	int i = 0;
-	while( arg != NULL){ /* Read until NULL */ 
-		arguments[i] = arg; /* Point to the input */
-		printf("DEBUG: input<:%s:>\n", arguments[i]);
-		arg = strtok(NULL, " "); /* Move on */
-		i++;
+	while(1){ /* Loop forever */
+		printf("DEBUG: Start of loop\n");
+		fgets(inputBuffer, BUFFERSIZE , stdin); /* Read command from terminal */
+		inputBuffer[strlen(inputBuffer)-1]= '\0'; /* Remove the newline char and replace it with null */ 
+		/*
+		if (strcmp("\n", inputBuffer) == 0)
+		{
+			printf("Say again?\n");
+			continue;
+		}
+		*/
+		char *arg = strtok(inputBuffer, " "); /* Split the input on space */
+
+		if (strcmp( "exit", arg) == 0) /* Exit!*/
+		{
+			free(arguments); /* Relese memory */
+			printf("Thank you come again!\n");
+			exit(0);
+		}
+		
+		int i = 0;
+		while( arg != NULL){ /* Read until NULL */ 
+			arguments[i] = arg; /* Point to the input */
+			printf("DEBUG: input<:%s:>\n", arguments[i]);
+			arg = strtok(NULL, " "); /* Move on */
+			i++;
+		}
+
+		createChild(arguments);
+		childHandler();
+		printf("DEBUG: End of loop\n");
 	}
 
-	createChild(arguments);
-	childHandler();
+	free(arguments); /* Relese memory */
 	exit(0);
 }
