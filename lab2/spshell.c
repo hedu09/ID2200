@@ -6,17 +6,22 @@
 #include <string.h> /* Define strcmp */
 #include <sys/wait.h> /* Prevent gcc -Wall errors in Mac */
 
+/* Function declarations */
+void createChild (char**);
+void childHandler();
+
 pid_t childpid; /* childProcessID for printenvp */
-int returnValue; /* Return value, to findout if an error occured */
 int status; /* Return codes for children */
 
 #define BUFFERSIZE (81) /* Define maximum size of the buffer, assumption from lab specification */
 #define ARGVSIZE (6) /* Define maximum size of the ARGC, assumption from lab specification */
 
-void createChild(char command[])
+/* createChild will create a child that will execute a command and change STDOUT to be sent to the write pipe and STDIN sent to read pipe.
+@Param	**input	- Input arguments to be run, that has been feed into the shell. */
+void createChild(char **input)
 {
 	childpid = fork();
-	if ( -1 == childpid)
+	if (-1 == childpid)
 	{
 		char * errorMessage = "UNKNOWN"; /* if no known error message print UNKNOWN*/
 		if (EAGAIN == errno){errorMessage = "cannot allocate page table";}
@@ -24,15 +29,41 @@ void createChild(char command[])
 		fprintf(stderr, "fork() blew up because: %s\n", errorMessage);
 		exit(1);/* Exit with error*/
 	}
-	else
+	else if(0 == childpid)/* Child returns 0 */
 	{
-		(void) execvp(command[0], arguments); /* Execute command */
+		fprintf( stderr, "Child (%s, pid %ld) started\n", input[0], (long int) getpid() );
+		(void) execvp(input[0], input); /* Execute command */
+		perror("Cannot exec perror");
+		exit(1); /*exit with error*/
 	}
 }
+/* Handles the child when the child has terminated by signal or died with or without error
+we need to handle the child when it dies or it will become a zombie */
 void childHandler()
 {
+	childpid = wait( &status ); /* waiting on a child process */
+	if ( -1 == childpid) { perror( "wait() failed unexpectedly" ); exit( 1 ); }/* Check if wait works correctly*/
 
+ 	if( WIFEXITED( status ) ) /* Check if child has terminated normally or by signal */
+	{
+		int child_status = WEXITSTATUS( status ); /*get the exit code specified by the child process*/
+		if( 0 != child_status ) /* child had problems */
+		{
+			fprintf( stderr, "Child (pid %ld) failed with exit code %d\n",
+				(long int) childpid, child_status );
+		}
+	}
+	else
+	{
+		if( WIFSIGNALED( status ) ) /* child-process terminated by signal */
+		{
+			int child_signal = WTERMSIG( status ); /*get the exit code specified by the child process*/
+			fprintf( stderr, "Child (pid %ld) was terminated by signal no. %d\n",
+				(long int) childpid, child_signal );
+		}
+	}	
 }
+
 int main(int argc, char **argv)
 {	
 	fprintf( stderr, "Parent (Parent, pid %ld) started\n", (long int) getpid() );  /* printing parents id for easier debuggning*/
@@ -43,20 +74,18 @@ int main(int argc, char **argv)
 	fgets(inputBuffer, BUFFERSIZE , stdin); /* Read command from terminal */
 	inputBuffer[strlen(inputBuffer)-1]= '\0';
 	
-	
+	/* TODO: Segemntation fault upon pressing enter */
 	char *arg = strtok(inputBuffer, " "); /* Split the input on space */
 	
 	int i = 0;
 	while( arg != NULL){ /* Read until NULL */ 
 		arguments[i] = arg; /* Point to the input */
-		printf("DEBUG: input:%s:\n", arguments[i]);
+		printf("DEBUG: input<:%s:>\n", arguments[i]);
 		arg = strtok(NULL, " "); /* Move on */
 		i++;
 	}
 
-	createChild(arguments[0]);
+	createChild(arguments);
 	childHandler();
-
-	perror("Cannot exec perror");
-	exit(1); // error
+	exit(0);
 }
