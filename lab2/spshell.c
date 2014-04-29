@@ -6,6 +6,7 @@
 #include <string.h> /* Define strcmp */
 #include <sys/wait.h> /* Prevent gcc -Wall errors in Mac */
 #include <unistd.h> /* Add the cd command */
+#include <sys/time.h> /* Get timeofday() function */
 
 /* Function declarations */
 void createChild (char**);
@@ -16,6 +17,8 @@ int status; /* Return codes for children */
 
 #define BUFFERSIZE (81) /* Define maximum size of the buffer, assumption from lab specification */
 #define ARGVSIZE (6) /* Define maximum size of the ARGC, assumption from lab specification */
+
+
 
 /* createChild will create a child that will execute a command and change STDOUT to be sent to the write pipe and STDIN sent to read pipe.
 @Param	**input	- Input arguments to be run, that has been feed into the shell. */
@@ -72,6 +75,8 @@ int main(int argc, char **argv)
 	char inputBuffer[BUFFERSIZE]; /* Declare input buffer for command, hard code to Stack */
 	char **arguments = (char **) calloc (ARGVSIZE,  BUFFERSIZE); /* Allocate memory for toknizer */
 	
+	double timeElapsed; /* Declare a time elapsed varible */
+
 	while(1){ /* Loop forever */
 		printf("DEBUG: Start of loop\n");
 		fgets(inputBuffer, BUFFERSIZE , stdin); /* Read command from terminal */
@@ -117,8 +122,20 @@ int main(int argc, char **argv)
 			continue; /* Move on */
 		}
 		
+		/* Create the struct for our time variables according to the man page*/
+		struct timeval starTime ,endTime;
+		gettimeofday(&starTime, NULL); /* Get start time */
 		createChild(arguments);
 		childHandler();
+		gettimeofday(&endTime, NULL); /* Get end time*/
+
+		/* Calculate and then convert to micro seconds */
+		timeElapsed = ((endTime.tv_sec - starTime.tv_sec) * 1000000.0); 
+		timeElapsed += (endTime.tv_usec - starTime.tv_usec);	
+
+		/* printf("Foreground process: , terminated\n"); */
+		printf("Wallclock time: %f msec \n", timeElapsed); 
+
 		printf("DEBUG: End of loop\n");
 	}
 
