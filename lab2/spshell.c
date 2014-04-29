@@ -100,13 +100,23 @@ int main(int argc, char **argv)
 			arg = strtok(NULL, " "); /* Move on */
 			i++;
 		}
-		/* ls breaks if we cd .., however ls with ls -l works?
+
 		if (strcmp( "cd", arguments[0]) == 0) 
 		{
-			chdir(arguments[1]);
-			continue;
+			if (-1 == chdir(arguments[1])) /* Something went wrong */
+			{
+				char *homeEnv; /* char pointer for the home varible */
+				homeEnv = getenv("HOME"); /* Get the home */
+				printf("DEBUG: Selected home: %s\n", homeEnv);
+				chdir(homeEnv); /* Fallback */
+			}
+			else /* chdir returned 0 */
+			{
+				chdir(arguments[1]); 
+			}
+			continue; /* Move on */
 		}
-		*/
+		
 		createChild(arguments);
 		childHandler();
 		printf("DEBUG: End of loop\n");
