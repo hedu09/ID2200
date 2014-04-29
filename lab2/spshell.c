@@ -56,6 +56,7 @@ void childHandler()
 			fprintf( stderr, "Child (pid %ld) failed with exit code %d\n",
 				(long int) childpid, child_status );
 		}
+		printf("Foreground process: (pid %ld), terminated\n", (long int) childpid); 
 	}
 	else
 	{
@@ -133,7 +134,6 @@ int main(int argc, char **argv)
 		timeElapsed = ((endTime.tv_sec - starTime.tv_sec) * 1000000.0); 
 		timeElapsed += (endTime.tv_usec - starTime.tv_usec);	
 
-		/* printf("Foreground process: , terminated\n"); */
 		printf("Wallclock time: %f msec \n", timeElapsed); 
 
 		printf("DEBUG: End of loop\n");
