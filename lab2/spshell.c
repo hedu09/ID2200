@@ -15,7 +15,7 @@ void childHandler();
 pid_t childpid; /* childProcessID for printenvp */
 int status; /* Return codes for children */
 
-#define BUFFERSIZE (81) /* Define maximum size of the buffer, assumption from lab specification */
+#define BUFFERSIZE (71) /* Define maximum size of the buffer, assumption from lab specification */
 #define ARGVSIZE (6) /* Define maximum size of the ARGC, assumption from lab specification */
 
 /* createChild will create a child that will execute a command and change STDOUT to be sent to the write pipe and STDIN sent to read pipe.
