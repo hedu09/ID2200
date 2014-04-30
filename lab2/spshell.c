@@ -17,7 +17,8 @@ int status; /* Return codes for children */
 
 #define BUFFERSIZE (71) /* Define maximum size of the buffer, assumption from lab specification */
 #define ARGVSIZE (6) /* Define maximum size of the ARGC, assumption from lab specification */
-
+#define FOREGROUND (0)
+#define BACKGROUND (1)
 /* createChild will create a child that will execute a command and change STDOUT to be sent to the write pipe and STDIN sent to read pipe.
 @Param	**input	- Input arguments to be run, that has been feed into the shell. */
 void createChild(char **input)
@@ -41,12 +42,18 @@ void createChild(char **input)
 }
 /* Handles the child when the child has terminated by signal or died with or without error
 we need to handle the child when it dies or it will become a zombie */
-void childHandler()
+void childHandler(int bg)
 {
-	waitpid( childpid , &status , 0 ); /* waiting on a child process */
-	if ( -1 == childpid) { perror( "wait() failed unexpectedly" ); exit( 1 ); }/* Check if wait works correctly*/
+	if(bg == FOREGROUND ){
+		waitpid( childpid , &status , 0 ); /* waiting on a child process */
+		if ( -1 == childpid) { perror( "wait() failed unexpectedly" ); exit( 1 ); }/* Check if wait works correctly*/
+	}
+	else if (bg == BACKGROUND){
+		waitpid(-1, &status ,WNOHANG); /*If pid is -1 wait for any child */
+		if ( -1 == childpid) { perror("wait() failed unexpectedly" ); exit( 1 ); }/* Check if wait works correctly*/		
+	}
 
- 	if( WIFEXITED( status ) ) /* Check if child has terminated normally or by signal */
+	if( WIFEXITED( status )  ) /* Check if child has terminated normally or by signal */
 	{
 		int child_status = WEXITSTATUS( status ); /*get the exit code specified by the child process*/
 		if( 0 != child_status ) /* child had problems */
@@ -65,6 +72,7 @@ void childHandler()
 				(long int) childpid, child_signal );
 		}
 	}	
+	
 }
 
 int main(int argc, char **argv)
@@ -120,22 +128,28 @@ int main(int argc, char **argv)
 			continue; /* Move on */
 		}
 		
-		/* Create the struct for our time variables according to the man page*/
-		struct timeval starTime , endTime;
-		gettimeofday(&starTime, NULL); /* Get start time */
-		createChild(arguments);
-		childHandler(); /* Send PID */
-		gettimeofday(&endTime, NULL); /* Get end time*/
+		if (strcmp("&", arguments[strlen(*arguments)-1]) == 0) {
+			printf("BACKGROUND"); 
+			createChild(arguments);			
+			childHandler(BACKGROUND);
+		}
+		else {
+			/* Create the struct for our time variables according to the man page*/
+			struct timeval starTime , endTime;
+			gettimeofday(&starTime, NULL); /* Get start time */
+			printf("FOREGROUND");
+			createChild(arguments);
+			childHandler(FOREGROUND); /* Send PID */
+			gettimeofday(&endTime, NULL); /* Get end time*/
+		
+			/* Calculate and then convert to micro seconds */
+			timeElapsed = ((endTime.tv_sec - starTime.tv_sec) * 1000000.0); 
+			timeElapsed += (endTime.tv_usec - starTime.tv_usec);	
 
-		/* Calculate and then convert to micro seconds */
-		timeElapsed = ((endTime.tv_sec - starTime.tv_sec) * 1000000.0); 
-		timeElapsed += (endTime.tv_usec - starTime.tv_usec);	
-
-		printf("Wallclock time: %f msec \n", timeElapsed); 
-
+			printf("Wallclock time: %f msec \n", timeElapsed); 
+		}
 		free(arguments); /* Relese memory */
 		printf("DEBUG: End of loop\n");
 	}
-
 	exit(0);
 }
