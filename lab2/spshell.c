@@ -17,8 +17,8 @@ int status; /* Return codes for children */
 
 #define BUFFERSIZE (71) /* Define maximum size of the buffer, assumption from lab specification */
 #define ARGVSIZE (6) /* Define maximum size of the ARGC, assumption from lab specification */
-#define WAIT (0)
-#define CHECKNOWAIT (1)
+#define WAIT (0) /* TODO */
+#define CHECKNOWAIT (1) /* TODO */
 
 /* createChild will create a child that will execute a command and change STDOUT to be sent to the write pipe and STDIN sent to read pipe.
 @Param	**input	- Input arguments to be run, that has been feed into the shell. */
@@ -43,11 +43,12 @@ void createChild(char **input)
 }
 /* Handles the child when the child has terminated by signal or died with or without error
 we need to handle the child when it dies or it will become a zombie */
+/* @Param	wait - TODO */
 void childHandler(int wait)
 {
-	if(wait == WAIT){
+	if(wait == WAIT){  /* TODO */
 		waitpid( childpid , &status , 0 ); /* waiting on a child process */		
-		if ( -1 == childpid) { perror( "wait() failed unexpectedly" ); exit( 1 ); }/* Check if wait works correctly*/
+		if ( -1 == childpid) { perror( "wait() failed unexpectedly" ); exit( 1 ); } /* Check if wait works correctly*/
 
 		if( WIFEXITED( status )  ) { /* Check if child has terminated normally or by signal */
 			int child_status = WEXITSTATUS( status ); /*get the exit code specified by the child process*/
@@ -67,8 +68,10 @@ void childHandler(int wait)
 			}
 		}	
 	}
-	else if (wait == CHECKNOWAIT){
-		int returnvalue = waitpid(-1, &status ,WNOHANG); /* Dont hang when waiting, check and move on */			
+	else if (wait == CHECKNOWAIT){  /* TODO */
+		int returnvalue = waitpid(-1, &status ,WNOHANG); /* Dont hang when waiting, check and move on */	
+
+		/* TODO: Denna rad har väl ingen effekt!? */		
 		if ( -1 == childpid) { perror( "wait() failed unexpectedly" ); exit( 1 ); }/* Check if wait works correctly*/
 
 		if( returnvalue > 0){
@@ -79,6 +82,7 @@ void childHandler(int wait)
 					fprintf( stderr, "Child (pid %ld) failed with exit code %d\n",
 						(long int) childpid, child_status );
 				}
+				/* TODO Skriv ut när bakgrunden processen terminerar */
 				printf("Foreground process: (pid %ld), terminated\n", (long int) childpid); 
 			}
 			else {
@@ -92,12 +96,19 @@ void childHandler(int wait)
 		}		
 	}
 }
-
+/* Main acts as the parents process in this program, the program starts with entering an infintate loop in order to capture commands given by the user.
+This is done by a string tokenizer that uses diffrent if cases to detect and sanatize input. A user can change directory and give the exit command.
+Programs may be started as foreground or background processes with the use of the '&' sign. When starting a foreground process some statistics is 
+presented for the user and then the loop starts again.
+@ Param int argc - number of arguments we have started our program with 
+@ Param char **argv - all the arguments we have is in a vector 
+*/
 int main(int argc, char **argv)
 {	
 	fprintf( stderr, "Parent (Parent, pid %ld) started\n", (long int) getpid() );  /* printing parents id for easier debuggning*/
 
 	while(1){ /* Loop forever */
+	/* TODO Fånga SIGINT!*/
 		printf("DEBUG: Start of loop\n");		
 		char inputBuffer[BUFFERSIZE]; /* Declare input buffer for command, hard code to Stack */
 		char **arguments = (char **) calloc (ARGVSIZE,  BUFFERSIZE); /* Allocate memory for toknizer */
@@ -119,7 +130,7 @@ int main(int argc, char **argv)
 		{
 			free(arguments); /* Relese memory */
 			printf("Thank you come again!\n");
-			exit(0);
+			exit(0); /* Terminate the program normaly due to exit */
 		}
 		
 		int length = 0; /* this is the length of the number of arguments we have */
@@ -147,9 +158,9 @@ int main(int argc, char **argv)
 			continue; /* Move on */
 		}
 		
-		printf("check foreground or BACKGROUND %d test\n", length ); 
+		printf("DEBUG: check foreground or BACKGROUND %d test\n", length ); 
 		if (strcmp("&", arguments[length-1] ) == 0) {
-			printf("BACKGROUND\n"); 
+			printf("DEBUG: BACKGROUND\n"); 
 			arguments[length-1]= (char *) NULL;
 			createChild(arguments);		
 		}
@@ -157,7 +168,7 @@ int main(int argc, char **argv)
 			/* Create the struct for our time variables according to the man page*/
 			struct timeval starTime , endTime;
 			gettimeofday(&starTime, NULL); /* Get start time */
-			printf("FOREGROUND\n");
+			printf("DEBUG: FOREGROUND\n");
 			createChild(arguments);
 			childHandler(WAIT); /* Send PID */
 			gettimeofday(&endTime, NULL); /* Get end time*/
