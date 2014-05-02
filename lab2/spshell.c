@@ -17,8 +17,8 @@ int status; /* Return codes for children */
 
 #define BUFFERSIZE (71) /* Define maximum size of the buffer, assumption from lab specification */
 #define ARGVSIZE (6) /* Define maximum size of the ARGC, assumption from lab specification */
-#define WAIT (0) /* TODO */
-#define CHECKNOWAIT (1) /* TODO */
+#define WAIT (0) /* We should wait for the process to terminate */
+#define CHECKNOWAIT (1) /* Check child status but dont wait until it has terminated  */
 
 /* createChild will create a child that will execute a command and change STDOUT to be sent to the write pipe and STDIN sent to read pipe.
 @Param	**input	- Input arguments to be run, that has been feed into the shell. */
@@ -71,9 +71,6 @@ void childHandler(int wait)
 	else if (wait == CHECKNOWAIT){  /* TODO */
 		int returnvalue = waitpid(-1, &status ,WNOHANG); /* Dont hang when waiting, check and move on */	
 
-		/* TODO: Denna rad har väl ingen effekt!? */		
-		if ( -1 == childpid) { perror( "wait() failed unexpectedly" ); exit( 1 ); }/* Check if wait works correctly*/
-
 		if( returnvalue > 0){
 			if( WIFEXITED( status )  ) { /* Check if child has terminated normally or by signal */
 				int child_status = WEXITSTATUS( status ); /*get the exit code specified by the child process*/
@@ -83,7 +80,7 @@ void childHandler(int wait)
 						(long int) childpid, child_status );
 				}
 				/* TODO Skriv ut när bakgrunden processen terminerar */
-				printf("Foreground process: (pid %ld), terminated\n", (long int) childpid); 
+				printf("Background process: (pid %ld), terminated\n", (long int) childpid); 
 			}
 			else {
 				if( WIFSIGNALED( status ) ) /* child-process terminated by signal */
