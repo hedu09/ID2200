@@ -135,7 +135,6 @@ int main(int argc, char **argv) {
 		int length = 0; /* this is the length of the number of arguments we have */
 		while( arg != NULL){ /* Read until NULL */ 
 			arguments[length] = arg; /* Point to the input */
-			printf("DEBUG: input<:%s:>\n", arguments[length]);
 			arg = strtok(NULL, " "); /* Move on */
 			length++;
 		}
