@@ -16,6 +16,7 @@ void childHandler();
 
 pid_t childpid; /* childProcessID for printenvp */
 int status; /* Return codes for children */
+
 #define BUFFERSIZE (71) /* Define maximum size of the buffer, assumption from lab specification */
 #define ARGVSIZE (6) /* Define maximum size of the ARGC, assumption from lab specification */
 #define WAIT (0) /* We should wait for the process to terminate */
@@ -25,7 +26,7 @@ int status; /* Return codes for children */
 @Param	**input	- Input arguments to be run, that has been feed into the shell. */
 void createChild(char **input)
 {
-	childpid = fork();
+	childpid = fork(); /* Create a new process */
 	if (-1 == childpid)
 	{
 		char * errorMessage = "UNKNOWN"; /* if no known error message print UNKNOWN*/
