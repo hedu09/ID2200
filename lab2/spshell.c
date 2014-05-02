@@ -1,3 +1,4 @@
+#include <signal.h> /* For sigignore */
 #include <sys/types.h> /* definierar bland annat typen pid_t */
 #include <errno.h> /* definierar felkontrollvariabeln errno */
 #include <stdio.h> /* definierar stderr, dit felmeddelanden skrivs */
@@ -8,13 +9,13 @@
 #include <unistd.h> /* Add the cd command */
 #include <sys/time.h> /* Get timeofday() function */
 
+
 /* Function declarations */
 void createChild (char**);
 void childHandler();
 
 pid_t childpid; /* childProcessID for printenvp */
 int status; /* Return codes for children */
-
 #define BUFFERSIZE (71) /* Define maximum size of the buffer, assumption from lab specification */
 #define ARGVSIZE (6) /* Define maximum size of the ARGC, assumption from lab specification */
 #define WAIT (0) /* We should wait for the process to terminate */
@@ -43,10 +44,10 @@ void createChild(char **input)
 }
 /* Handles the child when the child has terminated by signal or died with or without error
 we need to handle the child when it dies or it will become a zombie */
-/* @Param	wait - TODO */
+/* @Param	wait - Process will wait until it recieve a signal. */
 void childHandler(int wait)
 {
-	if(wait == WAIT){  /* TODO */
+	if(wait == WAIT){  /* Process will wait until it recieve a signal */
 		waitpid( childpid , &status , 0 ); /* waiting on a child process */		
 		if ( -1 == childpid) { perror( "wait() failed unexpectedly" ); exit( 1 ); } /* Check if wait works correctly*/
 
@@ -68,10 +69,9 @@ void childHandler(int wait)
 			}
 		}	
 	}
-	else if (wait == CHECKNOWAIT){  /* TODO */
-		int returnvalue = waitpid(-1, &status ,WNOHANG); /* Dont hang when waiting, check and move on */	
-
-		if( returnvalue > 0){
+	else if (wait == CHECKNOWAIT){  /* Check for signal but dont wait */
+		int returnvalue; /* Dont hang when waiting, check and move on */
+		while((returnvalue = waitpid(-1, &status ,WNOHANG)) > 0){			
 			if( WIFEXITED( status )  ) { /* Check if child has terminated normally or by signal */
 				int child_status = WEXITSTATUS( status ); /*get the exit code specified by the child process*/
 				if( 0 != child_status ) /* child had problems */
@@ -79,7 +79,6 @@ void childHandler(int wait)
 					fprintf( stderr, "Child (pid %ld) failed with exit code %d\n",
 						(long int) childpid, child_status );
 				}
-				/* TODO Skriv ut när bakgrunden processen terminerar */
 				printf("Background process: (pid %ld), terminated\n", (long int) childpid); 
 			}
 			else {
@@ -89,7 +88,7 @@ void childHandler(int wait)
 					fprintf( stderr, "Child (pid %ld) was terminated by signal no. %d\n",
 						(long int) childpid, child_signal );
 				}
-			}
+			}	
 		}		
 	}
 }
@@ -103,16 +102,19 @@ presented for the user and then the loop starts again.
 int main(int argc, char **argv)
 {	
 	fprintf( stderr, "Parent (Parent, pid %ld) started\n", (long int) getpid() );  /* printing parents id for easier debuggning*/
+	sigignore(SIGINT); /* Ignore Ctrl + C from user */
+	/*signal(SIGINT, ignore);*/
 
 	while(1){ /* Loop forever */
-	/* TODO Fånga SIGINT!*/
 		printf("DEBUG: Start of loop\n");		
 		char inputBuffer[BUFFERSIZE]; /* Declare input buffer for command, hard code to Stack */
-		char **arguments = (char **) calloc (ARGVSIZE,  BUFFERSIZE); /* Allocate memory for toknizer */
-		
+		char **arguments = (char **) calloc (ARGVSIZE,  BUFFERSIZE); /* Allocate memory for toknizer */		
 		double timeElapsed; /* Declare a time elapsed varible */
 
 		fgets(inputBuffer, BUFFERSIZE , stdin); /* Read command from terminal */
+
+		childHandler(CHECKNOWAIT); /* Check in there is any signal */
+
 		inputBuffer[strlen(inputBuffer)-1]= '\0'; /* Remove the newline char and replace it with null */ 		
 		char *arg = strtok(inputBuffer, " "); /* Split the input on space */
 		
@@ -138,7 +140,7 @@ int main(int argc, char **argv)
 			length++;
 		}
 		
-		if (strcmp( "cd", arguments[0]) == 0) 
+		if (strcmp( "cd", arguments[0]) == 0) /* check if first argument is cd */
 		{
 			if (-1 == chdir(arguments[1])) /* Something went wrong */
 			{
@@ -154,19 +156,18 @@ int main(int argc, char **argv)
 			free(arguments); /* Relese memory */
 			continue; /* Move on */
 		}
-		
-		printf("DEBUG: check foreground or BACKGROUND %d test\n", length ); 
-		if (strcmp("&", arguments[length-1] ) == 0) {
-			printf("DEBUG: BACKGROUND\n"); 
+				
+		if (strcmp("&", arguments[length-1] ) == 0) { /* Check if we should run in foreground or background */
+			printf("Running: BACKGROUND\n"); 
 			arguments[length-1]= (char *) NULL;
-			createChild(arguments);		
+			createChild(arguments);
 		}
 		else {
 			/* Create the struct for our time variables according to the man page*/
 			struct timeval starTime , endTime;
 			gettimeofday(&starTime, NULL); /* Get start time */
-			printf("DEBUG: FOREGROUND\n");
-			createChild(arguments);
+			printf("Running: FOREGROUND\n");
+			createChild(arguments); /*create a child */
 			childHandler(WAIT); /* Send PID */
 			gettimeofday(&endTime, NULL); /* Get end time*/
 		
@@ -175,8 +176,7 @@ int main(int argc, char **argv)
 			timeElapsed += (endTime.tv_usec - starTime.tv_usec);	
 
 			printf("Wallclock time: %f msec \n", timeElapsed); 
-		}
-		childHandler(CHECKNOWAIT);
+		}		
 		free(arguments); /* Relese memory */
 		printf("DEBUG: End of loop\n");
 	}
