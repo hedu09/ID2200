@@ -6,6 +6,9 @@
 
 #define NALLOC 1024                                     /* minimum #units to request */
 
+/* test körning gcc -o tstmalloc -g -Wall -DSTRATEGY=1 malloc.c tstmalloc.c 
+./tstmalloc */
+
 typedef long Align;                                     /* for alignment to long boundary */
 
 union header {                                          /* block header */
