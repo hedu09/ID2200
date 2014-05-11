@@ -7,7 +7,11 @@
 #define NALLOC 1024                                     /* minimum #units to request */
 
 /* test körning gcc -o tstmalloc -g -Wall -DSTRATEGY=1 malloc.c tstmalloc.c 
-./tstmalloc */
+./tstmalloc 
+gcc -c -o malloc.o malloc.c
+make
+./RUN_ALLTESTS
+chmod +x RUN_TESTS*/
 
 typedef long Align;                                     /* for alignment to long boundary */
 
@@ -36,15 +40,19 @@ void * malloc(size_t nbytes);
 void * realloc(void *ptr, size_t size){
 	void *newPtr;
 	Header *oldHPtr;
-
-	if(NULL == ptr){
-		return malloc(size);
-	}
-	if ((size == 0) && (NULL != ptr)) {
-		free(ptr);
+	Header *newHPtr;	
+	
+	if(size == 0){
+		if(NULL != ptr){
+			free(ptr);
+		}
 		/* a new minimu m size object is allocated and the orignal object freed */
-		return malloc(1);/* borde vara align och ge minsta storleken.*/
+		return malloc(1);/* borde vara align och ge minsta storleken.*/ /*TODO prata med robert*/
 	}
+
+	if(NULL == ptr){		
+		return malloc(size);
+	}		
 
 	/*Allocate a new block */
 	newPtr = malloc(size);
@@ -55,9 +63,15 @@ void * realloc(void *ptr, size_t size){
 
 	/* Fetch the old Header*/
 	oldHPtr = (Header *) ptr -1; /* Typecast void* to Header* */
+	newHPtr = (Header *) newPtr -1; /* Typecast void* to Header* */
 
-	/* Copy data from old to new */
-	memcpy(newPtr, ptr, oldHPtr->s.size);
+	if((oldHPtr->s.size)>(newHPtr->s.size)){ /* if we reduce the block size, copy data as big as the new block*/
+		/* Copy data from old to new, size of the block times size of Align*/
+		memcpy(newPtr, ptr, newHPtr->s.size*sizeof(Align));
+	}else {
+		/* Copy data from old to new, size of the block times size of Align*/
+		memcpy(newPtr, ptr, oldHPtr->s.size*sizeof(Align));
+	}
 	
 	free(ptr); /* Free the old block*/
 	
@@ -70,7 +84,6 @@ void * realloc(void *ptr, size_t size){
 void free(void * ap)
 {
 	Header *bp, *p;
-
 	if(ap == NULL){ 
 		return;                                /* Nothing to do */
 	}
@@ -176,14 +189,17 @@ void * malloc(size_t nbytes) {
 				p->s.size = nunits; 	 	/* Set next size to nunits */
 			}
 			/* Ta bort denna rad så får du en first fit nästan*/
-			freep = prevp; 	 	/* Start from the new posistion instead from the beginning */
+			freep =  base.s.ptr; /*	blir en next-fit nästan Start from the new posistion instead from the beginning */
 			return (void *)(p+1); 	 	/* Return the new pointer to data chunk*/
 		}
-
-		if(p == freep){                                      /* wrapped around free list */
-				if((p = morecore(nunits)) == NULL){ 	 	/* if morecore returns null */
+		if(p == freep) {                                      /* wrapped around free list */
+				if((p = morecore(nunits)) == NULL){ 	 	/* if morecore returns null */				
 					return NULL;                                    /* none free space left */
 				}
 		}
 	}
+}
+
+void * firstFit(size_t nbytes){
+
 }
