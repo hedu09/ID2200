@@ -34,6 +34,8 @@ void free(void * ap);
 void * endHeap(void);
 static Header *morecore(unsigned nu);
 void * malloc(size_t nbytes);
+void * firstFit(size_t nbytes);
+void * bestFit(size_t nbytes);
 
 
 /*  TODO: SPECIAL FALL 3st*/
@@ -162,6 +164,10 @@ Malloc function allocating bytes.
 @return: void * to the allocated chunk. 
 */
 void * malloc(size_t nbytes) {
+	return bestFit(nbytes);
+}
+
+void * firstFit(size_t nbytes){
 	Header *p;	 	/*Header pointer to the new chunk */
 	Header *prevp; 	 	/*Header pointer to the previous chunk */
 	Header * morecore(unsigned); 	 	/* Create a new header */
@@ -200,6 +206,50 @@ void * malloc(size_t nbytes) {
 	}
 }
 
-void * firstFit(size_t nbytes){
+void * bestFit(size_t nbytes){
+	Header *p;	 	/*Header pointer to the new chunk */
+	Header *prevp; 	 	/*Header pointer to the previous chunk */
+	Header * morecore(unsigned); 	 	/* Create a new header */
+	unsigned nunits; 	 	/* Size of Header + the chunk in bytes*/
 
+	if(nbytes == 0) { return NULL; } 	 	/* if nothing is to be allocated, according to malloc def */
+
+	nunits = (nbytes+sizeof(Header)-1)/sizeof(Header) +1; 	 /* Ceiling since we want to round upwards, chunk size */
+
+	/* Intialize */
+	if((prevp = freep) == NULL) { 	 	/* If there exists no freep */
+		base.s.ptr = freep = prevp = &base; 	 	/* Set all to start of the list */
+		base.s.size = 0; 	 	/* intalize size to  0*/
+	}
+
+	Header *bestp = NULL;
+	for(p= prevp->s.ptr;  ; prevp = p, p = p->s.ptr) { 	 	/* Iterate over the list */ /* TODO: 2dut to 2dut */
+		if(p->s.size >= nunits) {                           /* loop until big enough */
+			if (p->s.size == nunits){                          /* Fits perfectly */
+				prevp->s.ptr = p->s.ptr; 	 	/* Point the new Header*/
+				freep =  base.s.ptr; /*	blir en next-fit nästan Start from the new posistion instead from the beginning */
+				return (void *)(p+1); 	 	/* Return the new pointer to data chunk*/
+			}
+			if(NULL == bestp){ 
+				bestp = p;
+			}else{
+				if(p->s.size < bestp->s.size){
+					bestp = p;
+				}
+			}
+		}
+		if(p == freep) {                                      /* wrapped around free list */
+			if(NULL == bestp){				
+				if((p = morecore(nunits)) == NULL){ 	 	/* if morecore returns null */				
+					return NULL;                                    /* none free space left */
+				}
+			} else{
+				bestp->s.size -= nunits; 	 	/* Remove the diffrence */
+				bestp += bestp->s.size; 	 		/* Add next size nunits to current header */
+				bestp->s.size = nunits; 	 	/* Set next size to nunits */
+				freep =  base.s.ptr; /*	blir en next-fit nästan Start from the new posistion instead from the beginning */
+				return (void *)(bestp+1); 	 	/* Return the new pointer to data chunk*/				
+			}
+		}
+	}
 }
