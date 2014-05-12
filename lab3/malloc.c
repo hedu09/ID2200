@@ -44,23 +44,22 @@ void * realloc(void *ptr, size_t size){
 	Header *oldHPtr;
 	Header *newHPtr;	
 	
-	if(size == 0){
+	if(size == 0){ /* Base case*/
 		if(NULL != ptr){
 			free(ptr);
 		}
-		/* a new minimu m size object is allocated and the orignal object freed */
+		/* a new minimum size object is allocated and the orignal object freed */
 		return malloc(1);/* borde vara align och ge minsta storleken.*/ /*TODO prata med robert*/
 	}
 
-	if(NULL == ptr){		
+	if(NULL == ptr){	/* Base case*/
 		return malloc(size);
 	}		
 
 	/*Allocate a new block */
 	newPtr = malloc(size);
 	if(NULL == newPtr){
-	/* Malloc failed thus realloc fails aswell*/
-		return NULL;
+		return NULL; /* Malloc failed thus realloc fails aswell*/
 	}
 
 	/* Fetch the old Header*/
@@ -70,7 +69,7 @@ void * realloc(void *ptr, size_t size){
 	if((oldHPtr->s.size)>(newHPtr->s.size)){ /* if we reduce the block size, copy data as big as the new block*/
 		/* Copy data from old to new, size of the block times size of Align*/
 		memcpy(newPtr, ptr, newHPtr->s.size*sizeof(Align));
-	}else {
+	} else {
 		/* Copy data from old to new, size of the block times size of Align*/
 		memcpy(newPtr, ptr, oldHPtr->s.size*sizeof(Align));
 	}
@@ -159,74 +158,88 @@ static Header *morecore(unsigned nu)
 /*
 Malloc function allocating bytes.
 @Param: size_t (16 byte unsigned int), representing how many bytes to be allocated by malloc().
-@return: Null if when nbytes is 0 or if morecore fails.
-@return: void * to the allocated chunk. 
+@return: function call, running one of the allocation strategies.
+@return: NULL if strategy isn't defined.
 */
 void * malloc(size_t nbytes) {
-	Header *p;	 	/*Header pointer to the new chunk */ 
-	Header *prevp; 	 	/*Header pointer to the previous chunk */
-	Header * morecore(unsigned); 	 	/* Create a new header */
-	unsigned nunits; 	 	/* Size of Header + the chunk in bytes*/
+	Header *p;	 							/* Header pointer to the new chunk */ 
+	Header *prevp; 	 						/* Header pointer to the previous chunk */
+	/* Header * morecore(unsigned); 	 	 Create a new header */
+	unsigned nunits; 	 					/* Size of Header + the chunk in bytes */
 
 	if(nbytes == 0) { return NULL; } 	 	/* if nothing is to be allocated, according to malloc def */
 
 	nunits = (nbytes+sizeof(Header)-1)/sizeof(Header) +1; 	 /* Ceiling since we want to round upwards, chunk size */
 
 	/* Intialize */
-	if((prevp = freep) == NULL) { 	 	/* If there exists no freep */
+	if((prevp = freep) == NULL) { 	 				/* If there exists no freep */
 		base.s.ptr = freep = prevp = &base; 	 	/* Set all to start of the list */
-		base.s.size = 0; 	 	/* intalize size to  0*/
+		base.s.size = 0; 	 						/* intalize size to  0*/
 	}
 
-	#if DSTRATEGY == 1 
+	#if DSTRATEGY == 1 /* First Fit */
 		return firstFit(nbytes,p, prevp, nunits);
 	#endif
 
-	#if DSTRATEGY == 2
+	#if DSTRATEGY == 2 /* Best Fit */
 		return bestFit(nbytes,p, prevp, nunits);
 	#endif
 
-	return NULL;
+	return NULL; /* Strategy wasn't defnined thus terminate */
 }
 
-void * firstFit(size_t nbytes, Header * p,Header * prevp, unsigned nunits){
+/*
+Function for the memoery startegy known as first fit.
+@Param: size_t (16 byte unsigned int), representing how many bytes to be allocated by malloc().
+@Param: Header pointer to the new chunk.
+@Param: Header pointer to the previous chunk.
+@Param: Size of Header + the chunk in bytes.
+@return:  void * to the allocated chunk. 
+@return: Null if no more space is left.
+*/
+void * firstFit(size_t nbytes, Header * p, Header * prevp, unsigned nunits){
 	Header * morecore(unsigned); 	 	/* Create a new header */
-
-	/* Naive next fit */
 	for(p= prevp->s.ptr;  ; prevp = p, p = p->s.ptr) { 	 	/* Iterate over the list */ /* TODO: 2dut to 2dut */
 		if(p->s.size >= nunits) {                           /* loop until big enough */
-			if (p->s.size == nunits){                          /* Fits perfectly */
-				prevp->s.ptr = p->s.ptr; 	 	/* Point the new Header*/
+			if (p->s.size == nunits){                       /* Fits perfectly */
+				prevp->s.ptr = p->s.ptr; 	 				/* Point the new Header*/
 			}
-			else {                                            /* allocate tail end, split chunk */
-				p->s.size -= nunits; 	 	/* Remove the diffrence */
-				p += p->s.size; 	 		/* Add next size nunits to current header */
-				p->s.size = nunits; 	 	/* Set next size to nunits */
+			else {                                          /* allocate tail end, split chunk */
+				p->s.size -= nunits; 	 					/* Remove the diffrence */
+				p += p->s.size; 	 						/* Add next size nunits to current header */
+				p->s.size = nunits; 	 					/* Set next size to nunits */
 			}
-			/* Ta bort denna rad så får du en first fit nästan*/
-			freep =  base.s.ptr; /*	blir en next-fit nästan Start from the new posistion instead from the beginning */
-			return (void *)(p+1); 	 	/* Return the new pointer to data chunk*/
+			freep =  base.s.ptr; 						/*	blir en next-fit nästan Start from the new posistion instead from the beginning */
+			return (void *)(p+1); 	 					/* Return the new pointer to data chunk*/
 		}
-		if(p == freep) {                                      /* wrapped around free list */
-				if((p = morecore(nunits)) == NULL){ 	 	/* if morecore returns null */				
-					return NULL;                                    /* none free space left */
-				}
+		if(p == freep) {                                /* wrapped around free list */
+			if((p = morecore(nunits)) == NULL){ 	 	/* if morecore returns null */				
+				return NULL;                            /* none free space left */
+			}
 		}
 	}
 }
 
-void * bestFit(size_t nbytes, Header * p,Header * prevp, unsigned nunits){
+/*
+Function for the memoery startegy known as best fit.
+@Param: size_t (16 byte unsigned int), representing how many bytes to be allocated by malloc().
+@Param: Header pointer to the new chunk.
+@Param: Header pointer to the previous chunk.
+@Param: Size of Header + the chunk in bytes.
+@return:  void * to the allocated chunk. 
+@return: Null if no more space is left.
+*/
+void * bestFit(size_t nbytes, Header * p, Header * prevp, unsigned nunits){
 	Header * morecore(unsigned); 	 	/* Create a new header */
-
 	Header *bestp = NULL;				/*save the best value*/
 	for(p= prevp->s.ptr;  ; prevp = p, p = p->s.ptr) { 	 	/* Iterate over the list */ /* TODO: 2dut to 2dut */
 		if(p->s.size >= nunits) {                           /* loop until big enough */
-			if (p->s.size == nunits){                          /* Fits perfectly */
-				prevp->s.ptr = p->s.ptr; 	 	/* Point the new Header*/
-				freep =  base.s.ptr; /*	blir en next-fit nästan Start from the new posistion instead from the beginning */
-				return (void *)(p+1); 	 	/* Return the new pointer to data chunk*/
+			if (p->s.size == nunits){                       /* Fits perfectly */
+				prevp->s.ptr = p->s.ptr; 	 				/* Point the new Header*/
+				freep =  base.s.ptr; 						/*	blir en next-fit nästan Start from the new posistion instead from the beginning */
+				return (void *)(p+1); 	 					/* Return the new pointer to data chunk*/
 			}
-			if(NULL == bestp){ 		/* if no value*/
+			if(NULL == bestp){ 								/* if no value*/
 				bestp = p;
 			}else{
 				if(p->s.size < bestp->s.size){	
@@ -234,17 +247,17 @@ void * bestFit(size_t nbytes, Header * p,Header * prevp, unsigned nunits){
 				}
 			}
 		}
-		if(p == freep) {                                      /* wrapped around free list */
+		if(p == freep) {                                    /* wrapped around free list */
 			if(NULL == bestp){				
 				if((p = morecore(nunits)) == NULL){ 	 	/* if morecore returns null */				
-					return NULL;                                    /* none free space left */
+					return NULL;                            /* none free space left */
 				}
 			} else{
-				bestp->s.size -= nunits; 	 	/* Remove the diffrence */
-				bestp += bestp->s.size; 	 		/* Add next size nunits to current header */
-				bestp->s.size = nunits; 	 	/* Set next size to nunits */
-				freep =  base.s.ptr; /*	blir en next-fit nästan Start from the new posistion instead from the beginning */
-				return (void *)(bestp+1); 	 	/* Return the new pointer to data chunk*/				
+				bestp->s.size -= nunits; 	 /* Remove the diffrence */
+				bestp += bestp->s.size; 	 /* Add next size nunits to current header */
+				bestp->s.size = nunits; 	 /* Set next size to nunits */
+				freep =  base.s.ptr; 		 /* Blir en next-fit nästan Start from the new posistion instead from the beginning */
+				return (void *)(bestp+1); 	 /* Return the new pointer to data chunk*/				
 			}
 		}
 	}
