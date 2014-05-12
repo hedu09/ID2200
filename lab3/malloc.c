@@ -4,8 +4,6 @@
 #include <errno.h> 
 #include <sys/mman.h>
 
-#define NALLOC 1024                                     /* minimum #units to request */
-
 /* test körning gcc -o tstmalloc -g -Wall -DSTRATEGY=1 malloc.c tstmalloc.c 
 ./tstmalloc 
 gcc -c -o malloc.o malloc.c
@@ -28,14 +26,16 @@ typedef union header Header;
 static Header base;                                     /* empty list to get started */
 static Header *freep = NULL;                            /* start of free list */
 
+#define NALLOC 1024                                     /* minimum #units to request */
+
 /* Function declarations */
 void * realloc(void *ptr, size_t size);
 void free(void * ap);
 void * endHeap(void);
 static Header *morecore(unsigned nu);
 void * malloc(size_t nbytes);
-void * firstFit(size_t nbytes);
-void * bestFit(size_t nbytes);
+void * firstFit(size_t nbytes, Header * p,Header * prevp, unsigned nunits);
+void * bestFit(size_t nbytes, Header * p,Header * prevp, unsigned nunits);
 
 
 /*  TODO: SPECIAL FALL 3st*/
@@ -82,7 +82,6 @@ void * realloc(void *ptr, size_t size){
 
 
 /* free: put block ap in the free list */
-
 void free(void * ap)
 {
 	Header *bp, *p;
@@ -164,11 +163,7 @@ Malloc function allocating bytes.
 @return: void * to the allocated chunk. 
 */
 void * malloc(size_t nbytes) {
-	return bestFit(nbytes);
-}
-
-void * firstFit(size_t nbytes){
-	Header *p;	 	/*Header pointer to the new chunk */
+	Header *p;	 	/*Header pointer to the new chunk */ 
 	Header *prevp; 	 	/*Header pointer to the previous chunk */
 	Header * morecore(unsigned); 	 	/* Create a new header */
 	unsigned nunits; 	 	/* Size of Header + the chunk in bytes*/
@@ -182,6 +177,20 @@ void * firstFit(size_t nbytes){
 		base.s.ptr = freep = prevp = &base; 	 	/* Set all to start of the list */
 		base.s.size = 0; 	 	/* intalize size to  0*/
 	}
+
+	#if DSTRATEGY == 1 
+		return firstFit(nbytes,p, prevp, nunits);
+	#endif
+
+	#if DSTRATEGY == 2
+		return bestFit(nbytes,p, prevp, nunits);
+	#endif
+
+	return NULL;
+}
+
+void * firstFit(size_t nbytes, Header * p,Header * prevp, unsigned nunits){
+	Header * morecore(unsigned); 	 	/* Create a new header */
 
 	/* Naive next fit */
 	for(p= prevp->s.ptr;  ; prevp = p, p = p->s.ptr) { 	 	/* Iterate over the list */ /* TODO: 2dut to 2dut */
@@ -206,23 +215,10 @@ void * firstFit(size_t nbytes){
 	}
 }
 
-void * bestFit(size_t nbytes){
-	Header *p;	 	/*Header pointer to the new chunk */
-	Header *prevp; 	 	/*Header pointer to the previous chunk */
+void * bestFit(size_t nbytes, Header * p,Header * prevp, unsigned nunits){
 	Header * morecore(unsigned); 	 	/* Create a new header */
-	unsigned nunits; 	 	/* Size of Header + the chunk in bytes*/
 
-	if(nbytes == 0) { return NULL; } 	 	/* if nothing is to be allocated, according to malloc def */
-
-	nunits = (nbytes+sizeof(Header)-1)/sizeof(Header) +1; 	 /* Ceiling since we want to round upwards, chunk size */
-
-	/* Intialize */
-	if((prevp = freep) == NULL) { 	 	/* If there exists no freep */
-		base.s.ptr = freep = prevp = &base; 	 	/* Set all to start of the list */
-		base.s.size = 0; 	 	/* intalize size to  0*/
-	}
-
-	Header *bestp = NULL;
+	Header *bestp = NULL;				/*save the best value*/
 	for(p= prevp->s.ptr;  ; prevp = p, p = p->s.ptr) { 	 	/* Iterate over the list */ /* TODO: 2dut to 2dut */
 		if(p->s.size >= nunits) {                           /* loop until big enough */
 			if (p->s.size == nunits){                          /* Fits perfectly */
@@ -230,10 +226,10 @@ void * bestFit(size_t nbytes){
 				freep =  base.s.ptr; /*	blir en next-fit nästan Start from the new posistion instead from the beginning */
 				return (void *)(p+1); 	 	/* Return the new pointer to data chunk*/
 			}
-			if(NULL == bestp){ 
+			if(NULL == bestp){ 		/* if no value*/
 				bestp = p;
 			}else{
-				if(p->s.size < bestp->s.size){
+				if(p->s.size < bestp->s.size){	
 					bestp = p;
 				}
 			}
