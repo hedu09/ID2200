@@ -162,8 +162,8 @@ Malloc function allocating bytes.
 @return: NULL if strategy isn't defined.
 */
 void * malloc(size_t nbytes) {
-	Header *p;	 							/* Header pointer to the new chunk */ 
-	Header *prevp; 	 						/* Header pointer to the previous chunk */
+	Header *p=NULL;	 							/* Header pointer to the new chunk */ 
+	Header *prevp=NULL; 	 						/* Header pointer to the previous chunk */
 	/* Header * morecore(unsigned); 	 	 Create a new header */
 	unsigned nunits; 	 					/* Size of Header + the chunk in bytes */
 
@@ -177,11 +177,11 @@ void * malloc(size_t nbytes) {
 		base.s.size = 0; 	 						/* intalize size to  0*/
 	}
 
-	#if DSTRATEGY == 1 /* First Fit */
+	#if STRATEGY == 1 /* First Fit */
 		return firstFit(nbytes,p, prevp, nunits);
 	#endif
 
-	#if DSTRATEGY == 2 /* Best Fit */
+	#if STRATEGY == 2 /* Best Fit */
 		return bestFit(nbytes,p, prevp, nunits);
 	#endif
 
