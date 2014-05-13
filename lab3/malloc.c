@@ -49,7 +49,7 @@ void * realloc(void *ptr, size_t size){
 			free(ptr);
 		}
 		/* a new minimum size object is allocated and the orignal object freed */
-		return malloc(1);/* borde vara align och ge minsta storleken.*/ /*TODO prata med robert*/
+		return NULL;/* borde vara align och ge minsta storleken.*/ /*TODO prata med robert*/
 	}
 
 	if(NULL == ptr){	/* Base case*/
