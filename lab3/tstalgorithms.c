@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
   else
     progname = "";
   MESSAGE("-- This test checks malloc(), free() and realloc()\n");
-  srand((unsigned int)time(NULL));
+  srand(10);
 
 #ifdef MMAP
   start = endHeap();

@@ -6,9 +6,9 @@
 
 /* test körning gcc -o tstmalloc -g -Wall -DSTRATEGY=1 malloc.c tstmalloc.c 
 ./tstmalloc 
-gcc -c -o malloc.o malloc.c
+gcc -Wall -c -DSTRATEGY=1 -o malloc.o malloc.c
 make
-./RUN_ALLTESTS
+./RUN_TESTS
 chmod +x RUN_TESTS*/
 
 typedef long Align;                                     /* for alignment to long boundary */
